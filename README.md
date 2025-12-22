@@ -1,33 +1,36 @@
-# DanceMode!
+# Christmas Popper!
 
-An interactive dance game where you follow on-screen dance moves using your body! Uses webcam motion tracking to detect your hand positions.
-
-## Features
-
-- **5 Kid-Friendly Dances**: YMCA, Baby Shark, Hokey Pokey, Macarena, Freeze Dance
-- **Motion Tracking**: Uses MediaPipe pose detection via webcam
-- **Colorful Dancers**: Fun stick-figure avatars that follow your movements
-- **Scoring System**: Points for hitting moves, streak bonuses
-- **Up to 4 Players**: Multiple people can dance together
+A festive hand-tracking game where you pop baubles, catch elves and Santa, and avoid the Grinch!
 
 ## How to Play
 
 1. Run `./run_game.sh`
 2. Press **SPACE** to start
-3. Use **LEFT/RIGHT** arrows to select a dance
-4. Press **SPACE** to begin
-5. Move your hands to the target circles before time runs out!
-6. Get points for each move you hit
+3. Use your hands to pop targets on screen!
+4. You have **60 seconds** to get the highest score!
+
+## Targets
+
+| Target | Points | Behavior |
+|--------|--------|----------|
+| Bauble | +5 | Stationary golden ornaments |
+| Elf | +50 | Moves around, disappears after 3 seconds |
+| Santa | +100 | Fast! Twice the speed of elves, only 3 seconds |
+| Grinch | -10 | Avoid him! Moves like elves |
+
+## Tips
+
+- Baubles are easy but low points - rack them up!
+- Elves are worth catching - watch for the green with red hat
+- Santa is rare and FAST - be quick!
+- The Grinch wears Santa's stolen hat - don't touch him!
 
 ## Controls
 
 | Key | Action |
 |-----|--------|
-| SPACE | Start / Select / Continue |
-| LEFT/RIGHT | Choose dance |
-| ESC | Pause / Quit |
-| R | Replay dance |
-| Q (in camera window) | Hide camera preview |
+| SPACE | Start / Play Again |
+| ESC | Quit |
 
 ## Requirements
 
@@ -46,35 +49,12 @@ cd DanceMode
 ./run_game.sh
 ```
 
-## Dance Moves
-
-### YMCA (Easy)
-Make the letters with your arms!
-
-### Baby Shark (Easy)
-Chomping hand movements for each shark family member.
-
-### Hokey Pokey (Easy)
-Put your hands in, out, and shake them all about!
-
-### Macarena (Medium)
-Classic arm movements - arms out, flip, shoulders, head.
-
-### Freeze Dance (Medium)
-Strike random poses - T-pose, airplane, star, and more!
-
 ## Scoring
 
-- **100 points** per move hit
-- **50 bonus points** per streak level
-- Hit moves within 2 seconds to score
-- Build streaks for higher scores!
+At the end of 60 seconds, you'll see a breakdown:
+- How many of each target you popped
+- Points from each type
+- Your total score
+- Whether you beat your high score!
 
-## Ratings
-
-| Accuracy | Rating |
-|----------|--------|
-| 90%+ | SUPERSTAR! |
-| 70%+ | Great Moves! |
-| 50%+ | Good Try! |
-| <50% | Keep Practicing! |
+Merry Christmas!
