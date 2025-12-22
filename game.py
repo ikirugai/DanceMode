@@ -1,6 +1,6 @@
 """
-Christmas Popper! - A festive hand-tracking game
-Pop baubles, catch elves and Santa, avoid the Grinch!
+DanceMode - Christmas Popper!
+A festive hand-tracking game where you pop baubles, catch elves and Santa, and avoid the Grinch!
 """
 
 import pygame
@@ -35,8 +35,8 @@ class Target:
     pop_timer: float = 0  # animation timer after pop
 
 
-class ChristmasPopper:
-    """Main game class for Christmas Popper."""
+class DanceModeGame:
+    """Main game class for DanceMode - Christmas Popper!"""
 
     # Point values
     POINTS = {
@@ -76,16 +76,18 @@ class ChristmasPopper:
 
         self.width = width
         self.height = height
+        self.fullscreen = fullscreen
 
-        flags = pygame.DOUBLEBUF
+        # Allow resizing
+        flags = pygame.DOUBLEBUF | pygame.RESIZABLE
         if fullscreen:
-            flags |= pygame.FULLSCREEN
+            flags = pygame.DOUBLEBUF | pygame.FULLSCREEN
             info = pygame.display.Info()
             self.width = info.current_w
             self.height = info.current_h
 
         self.screen = pygame.display.set_mode((self.width, self.height), flags)
-        pygame.display.set_caption("Christmas Popper!")
+        pygame.display.set_caption("DanceMode - Christmas Popper!")
 
         self.clock = pygame.time.Clock()
         self.target_fps = 60
@@ -139,78 +141,78 @@ class ChristmasPopper:
             })
 
     def _create_sprites(self):
-        """Create simple sprite surfaces for characters."""
+        """Create sprite surfaces for characters (2x size for visibility)."""
         self.sprites = {}
 
-        # Bauble - golden ornament
-        bauble = pygame.Surface((60, 70), pygame.SRCALPHA)
-        pygame.draw.circle(bauble, (255, 215, 0), (30, 35), 25)  # Gold ball
-        pygame.draw.circle(bauble, (255, 240, 150), (22, 28), 8)  # Highlight
-        pygame.draw.rect(bauble, (200, 200, 200), (24, 5, 12, 10))  # Cap
-        pygame.draw.circle(bauble, (150, 150, 150), (30, 3), 5)  # Loop
+        # Bauble - golden ornament (2x size: 120x140)
+        bauble = pygame.Surface((120, 140), pygame.SRCALPHA)
+        pygame.draw.circle(bauble, (255, 215, 0), (60, 70), 50)  # Gold ball
+        pygame.draw.circle(bauble, (255, 240, 150), (44, 56), 16)  # Highlight
+        pygame.draw.rect(bauble, (200, 200, 200), (48, 10, 24, 20))  # Cap
+        pygame.draw.circle(bauble, (150, 150, 150), (60, 6), 10)  # Loop
         self.sprites['bauble'] = bauble
 
-        # Elf - green with pointy hat
-        elf = pygame.Surface((50, 70), pygame.SRCALPHA)
+        # Elf - green with pointy hat (2x size: 100x140)
+        elf = pygame.Surface((100, 140), pygame.SRCALPHA)
         # Body (green)
-        pygame.draw.ellipse(elf, (34, 139, 34), (10, 35, 30, 35))
+        pygame.draw.ellipse(elf, (34, 139, 34), (20, 70, 60, 70))
         # Head (skin tone)
-        pygame.draw.circle(elf, (255, 218, 185), (25, 25), 15)
-        # Hat (red with green)
-        points = [(25, 0), (10, 25), (40, 25)]
+        pygame.draw.circle(elf, (255, 218, 185), (50, 50), 30)
+        # Hat (red)
+        points = [(50, 0), (20, 50), (80, 50)]
         pygame.draw.polygon(elf, (220, 20, 60), points)
-        pygame.draw.circle(elf, (255, 255, 0), (25, 2), 5)  # Hat tip
+        pygame.draw.circle(elf, (255, 255, 0), (50, 4), 10)  # Hat tip
         # Eyes
-        pygame.draw.circle(elf, (0, 0, 0), (20, 23), 3)
-        pygame.draw.circle(elf, (0, 0, 0), (30, 23), 3)
+        pygame.draw.circle(elf, (0, 0, 0), (40, 46), 6)
+        pygame.draw.circle(elf, (0, 0, 0), (60, 46), 6)
         # Smile
-        pygame.draw.arc(elf, (0, 0, 0), (18, 25, 14, 10), 3.4, 6.0, 2)
+        pygame.draw.arc(elf, (0, 0, 0), (36, 50, 28, 20), 3.4, 6.0, 3)
         # Ears (pointy)
-        pygame.draw.polygon(elf, (255, 218, 185), [(8, 22), (5, 18), (12, 25)])
-        pygame.draw.polygon(elf, (255, 218, 185), [(42, 22), (45, 18), (38, 25)])
+        pygame.draw.polygon(elf, (255, 218, 185), [(16, 44), (10, 36), (24, 50)])
+        pygame.draw.polygon(elf, (255, 218, 185), [(84, 44), (90, 36), (76, 50)])
         self.sprites['elf'] = elf
 
-        # Santa - red suit, white beard
-        santa = pygame.Surface((70, 90), pygame.SRCALPHA)
+        # Santa - red suit, white beard (2x size: 140x180)
+        santa = pygame.Surface((140, 180), pygame.SRCALPHA)
         # Body (red)
-        pygame.draw.ellipse(santa, (220, 20, 60), (10, 40, 50, 50))
+        pygame.draw.ellipse(santa, (220, 20, 60), (20, 80, 100, 100))
         # Belt
-        pygame.draw.rect(santa, (0, 0, 0), (15, 55, 40, 8))
-        pygame.draw.rect(santa, (255, 215, 0), (30, 54, 10, 10))  # Buckle
+        pygame.draw.rect(santa, (0, 0, 0), (30, 110, 80, 16))
+        pygame.draw.rect(santa, (255, 215, 0), (60, 108, 20, 20))  # Buckle
         # Head
-        pygame.draw.circle(santa, (255, 218, 185), (35, 25), 18)
+        pygame.draw.circle(santa, (255, 218, 185), (70, 50), 36)
         # Beard (white)
-        pygame.draw.ellipse(santa, (255, 255, 255), (20, 28, 30, 25))
+        pygame.draw.ellipse(santa, (255, 255, 255), (40, 56, 60, 50))
         # Hat
-        pygame.draw.polygon(santa, (220, 20, 60), [(35, 0), (15, 22), (55, 22)])
-        pygame.draw.circle(santa, (255, 255, 255), (35, 2), 6)
-        pygame.draw.ellipse(santa, (255, 255, 255), (12, 18, 46, 10))  # Brim
+        pygame.draw.polygon(santa, (220, 20, 60), [(70, 0), (30, 44), (110, 44)])
+        pygame.draw.circle(santa, (255, 255, 255), (70, 4), 12)
+        pygame.draw.ellipse(santa, (255, 255, 255), (24, 36, 92, 20))  # Brim
         # Eyes
-        pygame.draw.circle(santa, (0, 0, 0), (28, 22), 3)
-        pygame.draw.circle(santa, (0, 0, 0), (42, 22), 3)
+        pygame.draw.circle(santa, (0, 0, 0), (56, 44), 6)
+        pygame.draw.circle(santa, (0, 0, 0), (84, 44), 6)
         # Nose
-        pygame.draw.circle(santa, (255, 150, 150), (35, 28), 4)
+        pygame.draw.circle(santa, (255, 150, 150), (70, 56), 8)
         self.sprites['santa'] = santa
 
-        # Grinch - green, mean face
-        grinch = pygame.Surface((60, 80), pygame.SRCALPHA)
+        # Grinch - green, mean face (2x size: 120x160)
+        grinch = pygame.Surface((120, 160), pygame.SRCALPHA)
         # Body (green furry)
-        pygame.draw.ellipse(grinch, (0, 128, 0), (10, 40, 40, 40))
+        pygame.draw.ellipse(grinch, (0, 128, 0), (20, 80, 80, 80))
         # Head (green)
-        pygame.draw.circle(grinch, (0, 128, 0), (30, 28), 22)
+        pygame.draw.circle(grinch, (0, 128, 0), (60, 56), 44)
         # Mean eyebrows
-        pygame.draw.line(grinch, (0, 80, 0), (15, 18), (28, 25), 4)
-        pygame.draw.line(grinch, (0, 80, 0), (45, 18), (32, 25), 4)
+        pygame.draw.line(grinch, (0, 80, 0), (30, 36), (56, 50), 6)
+        pygame.draw.line(grinch, (0, 80, 0), (90, 36), (64, 50), 6)
         # Evil eyes (yellow)
-        pygame.draw.circle(grinch, (255, 255, 0), (22, 25), 6)
-        pygame.draw.circle(grinch, (255, 255, 0), (38, 25), 6)
-        pygame.draw.circle(grinch, (255, 0, 0), (22, 25), 3)  # Red pupils
-        pygame.draw.circle(grinch, (255, 0, 0), (38, 25), 3)
+        pygame.draw.circle(grinch, (255, 255, 0), (44, 50), 12)
+        pygame.draw.circle(grinch, (255, 255, 0), (76, 50), 12)
+        pygame.draw.circle(grinch, (255, 0, 0), (44, 50), 6)  # Red pupils
+        pygame.draw.circle(grinch, (255, 0, 0), (76, 50), 6)
         # Evil grin
-        pygame.draw.arc(grinch, (0, 80, 0), (15, 30, 30, 15), 3.5, 6.0, 3)
+        pygame.draw.arc(grinch, (0, 80, 0), (30, 60, 60, 30), 3.5, 6.0, 4)
         # Santa hat (stolen!)
-        pygame.draw.polygon(grinch, (220, 20, 60), [(30, 2), (12, 20), (48, 20)])
-        pygame.draw.circle(grinch, (255, 255, 255), (30, 3), 5)
+        pygame.draw.polygon(grinch, (220, 20, 60), [(60, 4), (24, 40), (96, 40)])
+        pygame.draw.circle(grinch, (255, 255, 255), (60, 6), 10)
         self.sprites['grinch'] = grinch
 
     def _init_sounds(self):
@@ -297,6 +299,8 @@ class ChristmasPopper:
                 elif event.type == pygame.KEYDOWN:
                     if not self._handle_keydown(event.key):
                         return False
+                elif event.type == pygame.VIDEORESIZE:
+                    self._handle_resize(event.w, event.h)
             return True
 
         while running:
@@ -332,7 +336,39 @@ class ChristmasPopper:
             elif self.state == GameState.RESULTS:
                 self._start_countdown()
 
+        elif key == pygame.K_f or key == pygame.K_F11:
+            # Toggle fullscreen
+            self._toggle_fullscreen()
+
         return True
+
+    def _handle_resize(self, new_width: int, new_height: int):
+        """Handle window resize."""
+        self.width = new_width
+        self.height = new_height
+        if not self.fullscreen:
+            self.screen = pygame.display.set_mode((self.width, self.height),
+                                                   pygame.DOUBLEBUF | pygame.RESIZABLE)
+        # Reinitialize snowflakes for new size
+        self.snowflakes.clear()
+        self._init_snowflakes(100)
+
+    def _toggle_fullscreen(self):
+        """Toggle fullscreen mode."""
+        self.fullscreen = not self.fullscreen
+        if self.fullscreen:
+            self.screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+            info = pygame.display.Info()
+            self.width = info.current_w
+            self.height = info.current_h
+        else:
+            self.width = 1280
+            self.height = 720
+            self.screen = pygame.display.set_mode((self.width, self.height),
+                                                   pygame.DOUBLEBUF | pygame.RESIZABLE)
+        # Reinitialize snowflakes for new size
+        self.snowflakes.clear()
+        self._init_snowflakes(100)
 
     def _start_countdown(self):
         """Start countdown before game."""
@@ -442,8 +478,8 @@ class ChristmasPopper:
 
         lifetime = self.LIFETIMES[target_type]
 
-        # Size varies by type
-        sizes = {'bauble': 50, 'elf': 55, 'santa': 70, 'grinch': 60}
+        # Size varies by type (doubled for larger sprites)
+        sizes = {'bauble': 100, 'elf': 110, 'santa': 140, 'grinch': 120}
 
         target = Target(
             x=x, y=y,
@@ -657,6 +693,9 @@ class ChristmasPopper:
 
     def _render_playing(self):
         """Render gameplay."""
+        # Draw skeleton overlay first (behind targets)
+        self._draw_skeleton_overlay()
+
         # Draw targets
         for target in self.targets:
             self._draw_target(target)
@@ -669,6 +708,74 @@ class ChristmasPopper:
 
         # Draw UI
         self._draw_game_ui()
+
+    def _draw_skeleton_overlay(self):
+        """Draw skeleton/body tracking overlay."""
+        if not self.cached_players:
+            return
+
+        # Colors for different players
+        player_colors = [
+            (255, 100, 150),  # Pink
+            (100, 200, 255),  # Blue
+            (150, 255, 100),  # Green
+            (255, 200, 100),  # Orange
+        ]
+
+        for i, player in enumerate(self.cached_players[:4]):
+            color = player_colors[i % len(player_colors)]
+
+            # Get all joint positions
+            joints = {
+                'nose': player.nose,
+                'left_shoulder': player.left_shoulder,
+                'right_shoulder': player.right_shoulder,
+                'left_elbow': player.left_elbow,
+                'right_elbow': player.right_elbow,
+                'left_hand': player.left_hand,
+                'right_hand': player.right_hand,
+                'left_hip': player.left_hip,
+                'right_hip': player.right_hip,
+            }
+
+            # Draw skeleton connections
+            connections = [
+                ('left_shoulder', 'right_shoulder'),
+                ('left_shoulder', 'left_elbow'),
+                ('left_elbow', 'left_hand'),
+                ('right_shoulder', 'right_elbow'),
+                ('right_elbow', 'right_hand'),
+                ('left_shoulder', 'left_hip'),
+                ('right_shoulder', 'right_hip'),
+                ('left_hip', 'right_hip'),
+            ]
+
+            for start_name, end_name in connections:
+                start = joints.get(start_name)
+                end = joints.get(end_name)
+                if start and end:
+                    pygame.draw.line(self.screen, color,
+                                   (int(start[0]), int(start[1])),
+                                   (int(end[0]), int(end[1])), 4)
+
+            # Draw joints
+            for joint_name, pos in joints.items():
+                if pos:
+                    # Larger circles for hands
+                    if 'hand' in joint_name:
+                        # Hand - large glowing circle
+                        pygame.draw.circle(self.screen, (255, 255, 255),
+                                         (int(pos[0]), int(pos[1])), 25, 3)
+                        pygame.draw.circle(self.screen, color,
+                                         (int(pos[0]), int(pos[1])), 20)
+                        pygame.draw.circle(self.screen, (255, 255, 255),
+                                         (int(pos[0]), int(pos[1])), 8)
+                    else:
+                        # Other joints - smaller
+                        pygame.draw.circle(self.screen, color,
+                                         (int(pos[0]), int(pos[1])), 8)
+                        pygame.draw.circle(self.screen, (255, 255, 255),
+                                         (int(pos[0]), int(pos[1])), 8, 2)
 
     def _draw_target(self, target: Target):
         """Draw a single target."""
@@ -823,7 +930,7 @@ def main():
 
     args = parser.parse_args()
 
-    game = ChristmasPopper(
+    game = DanceModeGame(
         width=args.width,
         height=args.height,
         fullscreen=args.fullscreen
