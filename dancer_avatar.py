@@ -255,7 +255,7 @@ class TargetRenderer:
 
     def __init__(self):
         self.pulse_time = 0.0
-        self.target_radius = 50
+        self.target_radius = 120  # Large visible target - matches hit detection
 
     def render_targets(self, surface: pygame.Surface,
                        left_target: Optional[Tuple[int, int]],

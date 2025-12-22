@@ -160,8 +160,8 @@ class DanceTargetManager:
         self.move_timer: float = 0.0
         self.move_timeout: float = 5.0  # Seconds to hit the target (kid-friendly)
 
-        # Target hit detection
-        self.hit_radius: float = 150  # Pixels - how close hand needs to be (generous for kids)
+        # Target hit detection - VERY generous for kids
+        self.hit_radius: float = 250  # Pixels - very large radius for easy hits
         self.left_hand_hit: bool = False
         self.right_hand_hit: bool = False
 

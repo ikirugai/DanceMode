@@ -309,15 +309,17 @@ class PlayerDetector:
             return (x, y)
 
         # Extract key landmarks using indices (no legs)
+        # Note: Frame is mirrored for display, so we swap left/right from MediaPipe
+        # This way player's left hand (appears on left side of screen) matches left targets
         player.nose = scale_point(PoseLandmarkIndex.NOSE, 'nose')
-        player.left_shoulder = scale_point(PoseLandmarkIndex.LEFT_SHOULDER, 'l_shoulder')
-        player.right_shoulder = scale_point(PoseLandmarkIndex.RIGHT_SHOULDER, 'r_shoulder')
-        player.left_elbow = scale_point(PoseLandmarkIndex.LEFT_ELBOW, 'l_elbow')
-        player.right_elbow = scale_point(PoseLandmarkIndex.RIGHT_ELBOW, 'r_elbow')
-        player.left_hand = scale_point(PoseLandmarkIndex.LEFT_WRIST, 'l_hand')
-        player.right_hand = scale_point(PoseLandmarkIndex.RIGHT_WRIST, 'r_hand')
-        player.left_hip = scale_point(PoseLandmarkIndex.LEFT_HIP, 'l_hip')
-        player.right_hip = scale_point(PoseLandmarkIndex.RIGHT_HIP, 'r_hip')
+        player.left_shoulder = scale_point(PoseLandmarkIndex.RIGHT_SHOULDER, 'l_shoulder')
+        player.right_shoulder = scale_point(PoseLandmarkIndex.LEFT_SHOULDER, 'r_shoulder')
+        player.left_elbow = scale_point(PoseLandmarkIndex.RIGHT_ELBOW, 'l_elbow')
+        player.right_elbow = scale_point(PoseLandmarkIndex.LEFT_ELBOW, 'r_elbow')
+        player.left_hand = scale_point(PoseLandmarkIndex.RIGHT_WRIST, 'l_hand')
+        player.right_hand = scale_point(PoseLandmarkIndex.LEFT_WRIST, 'r_hand')
+        player.left_hip = scale_point(PoseLandmarkIndex.RIGHT_HIP, 'l_hip')
+        player.right_hip = scale_point(PoseLandmarkIndex.LEFT_HIP, 'r_hip')
 
         # Calculate bounding box if enough landmarks visible
         visible_points = []
