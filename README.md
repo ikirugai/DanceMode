@@ -1,6 +1,6 @@
-# DanceMode - Christmas Popper!
+# DanceMode
 
-A fun Christmas game where you pop baubles with your hands! Uses your laptop's camera to track your movements.
+A fun hand-tracking game for the holidays! Uses your laptop's camera to track your hand movements. Choose between Christmas and Chanukkah themes!
 
 ## What You Need
 
@@ -49,27 +49,38 @@ pip install pygame opencv-python mediapipe
 python main.py
 ```
 
-### Step 3: Play!
+### Step 3: Choose Your Theme!
+
+Use the **arrow keys** to select:
+- **Christmas** - Baubles, Elves, Santa, and the Grinch with falling snowflakes
+- **Chanukkah** - Sufganiyot (donuts), Stars of David, Menorahs, and Antiochus with spinning dreidels
+
+Press **SPACE** or **1**/**2** to pick your theme!
+
+### Step 4: Play!
 1. Press **SPACE** to start
 2. Wave your hands to pop the targets!
 3. You have 60 seconds - get the highest score!
 
 ## Game Rules
 
-| Target | Points | Tips |
-|--------|--------|------|
-| Gold Bauble | +5 | Easy to hit, always there |
-| Green Elf | +50 | Moves around, disappears fast! |
-| Santa | +100 | Super fast, very rare - grab him! |
-| Grinch | -10 | Stay away from the green meanie! |
+| Christmas | Chanukkah | Points | Tips |
+|-----------|-----------|--------|------|
+| Bauble | Sufganiyah | +5 | Easy to hit, always there |
+| Elf | Star of David | +50 | Moves around, disappears fast! |
+| Santa | Menorah | +100 | Super fast, very rare - grab it! |
+| Grinch | Antiochus | -10 | Stay away! |
 
 ## Controls
 
 | Key | What it does |
 |-----|--------------|
-| SPACE | Start game / Play again |
+| Arrow Keys | Select theme |
+| SPACE | Select / Start / Play again |
+| 1 | Quick select Christmas |
+| 2 | Quick select Chanukkah |
 | F | Toggle fullscreen |
-| ESC | Quit |
+| ESC | Back to theme select / Quit |
 
 ## Troubleshooting
 
@@ -81,4 +92,4 @@ python main.py
 
 ## Have Fun!
 
-Merry Christmas!
+Happy Holidays!

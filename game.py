@@ -1,6 +1,6 @@
 """
-DanceMode - Christmas Popper!
-A festive hand-tracking game where you pop baubles, catch elves and Santa, and avoid the Grinch!
+DanceMode - A festive hand-tracking game!
+Choose Christmas or Chanukkah theme and pop targets with your hands!
 """
 
 import pygame
@@ -15,6 +15,7 @@ from player_detection import PlayerDetector
 
 
 class GameState(Enum):
+    MENU = "menu"  # Theme selection
     TITLE = "title"
     COUNTDOWN = "countdown"
     PLAYING = "playing"
@@ -36,9 +37,9 @@ class Target:
 
 
 class DanceModeGame:
-    """Main game class for DanceMode - Christmas Popper!"""
+    """Main game class for DanceMode!"""
 
-    # Point values
+    # Point values (same for both themes)
     POINTS = {
         'bauble': 5,
         'elf': 50,
@@ -70,6 +71,46 @@ class DanceModeGame:
         'grinch': 150,
     }
 
+    # Theme configurations
+    THEMES = {
+        'christmas': {
+            'name': 'Christmas',
+            'bauble_name': 'Bauble',
+            'elf_name': 'Elf',
+            'santa_name': 'Santa',
+            'grinch_name': 'Grinch',
+            'colors': {
+                'primary': (255, 50, 50),  # Red
+                'secondary': (50, 255, 50),  # Green
+                'accent': (255, 215, 0),  # Gold
+            },
+            'particle_colors': {
+                'bauble': [(255, 215, 0), (255, 240, 150)],
+                'elf': [(34, 139, 34), (255, 0, 0)],
+                'santa': [(220, 20, 60), (255, 255, 255)],
+                'grinch': [(0, 128, 0), (128, 128, 128)],
+            },
+        },
+        'chanukkah': {
+            'name': 'Chanukkah',
+            'bauble_name': 'Sufganiyah',
+            'elf_name': 'Star',
+            'santa_name': 'Menorah',
+            'grinch_name': 'Antiochus',
+            'colors': {
+                'primary': (0, 100, 200),  # Blue
+                'secondary': (255, 255, 255),  # White
+                'accent': (255, 215, 0),  # Gold
+            },
+            'particle_colors': {
+                'bauble': [(210, 180, 140), (255, 200, 150)],  # Donut colors
+                'elf': [(0, 100, 200), (255, 215, 0)],  # Blue and gold
+                'santa': [(255, 215, 0), (255, 165, 0)],  # Gold flames
+                'grinch': [(128, 0, 128), (100, 100, 100)],  # Purple/gray
+            },
+        },
+    }
+
     def __init__(self, width: int = 1280, height: int = 720, fullscreen: bool = False):
         pygame.init()
         pygame.mixer.init()
@@ -77,6 +118,10 @@ class DanceModeGame:
         self.width = width
         self.height = height
         self.fullscreen = fullscreen
+
+        # Theme selection
+        self.theme = 'christmas'  # Default
+        self.menu_selection = 0  # 0 = Christmas, 1 = Chanukkah
 
         # Allow resizing
         flags = pygame.DOUBLEBUF | pygame.RESIZABLE
@@ -87,7 +132,7 @@ class DanceModeGame:
             self.height = info.current_h
 
         self.screen = pygame.display.set_mode((self.width, self.height), flags)
-        pygame.display.set_caption("DanceMode - Christmas Popper!")
+        pygame.display.set_caption("DanceMode!")
 
         self.clock = pygame.time.Clock()
         self.target_fps = 60
@@ -104,12 +149,12 @@ class DanceModeGame:
         self.font_medium = pygame.font.Font(None, 48)
         self.font_small = pygame.font.Font(None, 32)
 
-        # Game state
-        self.state = GameState.TITLE
+        # Game state - start at menu
+        self.state = GameState.MENU
         self.countdown_timer = 3.0
         self.game_timer = 60.0  # 1 minute rounds
         self.score = 0
-        self.high_score = 0
+        self.high_scores = {'christmas': 0, 'chanukkah': 0}
 
         # Targets
         self.targets: List[Target] = []
@@ -126,11 +171,14 @@ class DanceModeGame:
         # Sounds
         self._init_sounds()
 
-        # Create character sprites
-        self._create_sprites()
+        # Create sprites for both themes
+        self.sprites = {}
+        self._create_christmas_sprites()
+        self._create_chanukkah_sprites()
 
     def _init_snowflakes(self, count: int):
-        """Create background snowflakes."""
+        """Create background snowflakes/sparkles."""
+        self.snowflakes.clear()
         for _ in range(count):
             self.snowflakes.append({
                 'x': random.randint(0, self.width),
@@ -140,80 +188,168 @@ class DanceModeGame:
                 'drift': random.random() * 2 - 1,
             })
 
-    def _create_sprites(self):
-        """Create sprite surfaces for characters (2x size for visibility)."""
-        self.sprites = {}
-
+    def _create_christmas_sprites(self):
+        """Create Christmas-themed sprites."""
         # Bauble - golden ornament (2x size: 120x140)
         bauble = pygame.Surface((120, 140), pygame.SRCALPHA)
         pygame.draw.circle(bauble, (255, 215, 0), (60, 70), 50)  # Gold ball
         pygame.draw.circle(bauble, (255, 240, 150), (44, 56), 16)  # Highlight
         pygame.draw.rect(bauble, (200, 200, 200), (48, 10, 24, 20))  # Cap
         pygame.draw.circle(bauble, (150, 150, 150), (60, 6), 10)  # Loop
-        self.sprites['bauble'] = bauble
+        self.sprites['christmas_bauble'] = bauble
 
         # Elf - green with pointy hat (2x size: 100x140)
         elf = pygame.Surface((100, 140), pygame.SRCALPHA)
-        # Body (green)
-        pygame.draw.ellipse(elf, (34, 139, 34), (20, 70, 60, 70))
-        # Head (skin tone)
-        pygame.draw.circle(elf, (255, 218, 185), (50, 50), 30)
-        # Hat (red)
-        points = [(50, 0), (20, 50), (80, 50)]
-        pygame.draw.polygon(elf, (220, 20, 60), points)
+        pygame.draw.ellipse(elf, (34, 139, 34), (20, 70, 60, 70))  # Body
+        pygame.draw.circle(elf, (255, 218, 185), (50, 50), 30)  # Head
+        pygame.draw.polygon(elf, (220, 20, 60), [(50, 0), (20, 50), (80, 50)])  # Hat
         pygame.draw.circle(elf, (255, 255, 0), (50, 4), 10)  # Hat tip
-        # Eyes
-        pygame.draw.circle(elf, (0, 0, 0), (40, 46), 6)
+        pygame.draw.circle(elf, (0, 0, 0), (40, 46), 6)  # Eyes
         pygame.draw.circle(elf, (0, 0, 0), (60, 46), 6)
-        # Smile
-        pygame.draw.arc(elf, (0, 0, 0), (36, 50, 28, 20), 3.4, 6.0, 3)
-        # Ears (pointy)
-        pygame.draw.polygon(elf, (255, 218, 185), [(16, 44), (10, 36), (24, 50)])
+        pygame.draw.arc(elf, (0, 0, 0), (36, 50, 28, 20), 3.4, 6.0, 3)  # Smile
+        pygame.draw.polygon(elf, (255, 218, 185), [(16, 44), (10, 36), (24, 50)])  # Ears
         pygame.draw.polygon(elf, (255, 218, 185), [(84, 44), (90, 36), (76, 50)])
-        self.sprites['elf'] = elf
+        self.sprites['christmas_elf'] = elf
 
         # Santa - red suit, white beard (2x size: 140x180)
         santa = pygame.Surface((140, 180), pygame.SRCALPHA)
-        # Body (red)
-        pygame.draw.ellipse(santa, (220, 20, 60), (20, 80, 100, 100))
-        # Belt
-        pygame.draw.rect(santa, (0, 0, 0), (30, 110, 80, 16))
+        pygame.draw.ellipse(santa, (220, 20, 60), (20, 80, 100, 100))  # Body
+        pygame.draw.rect(santa, (0, 0, 0), (30, 110, 80, 16))  # Belt
         pygame.draw.rect(santa, (255, 215, 0), (60, 108, 20, 20))  # Buckle
-        # Head
-        pygame.draw.circle(santa, (255, 218, 185), (70, 50), 36)
-        # Beard (white)
-        pygame.draw.ellipse(santa, (255, 255, 255), (40, 56, 60, 50))
-        # Hat
-        pygame.draw.polygon(santa, (220, 20, 60), [(70, 0), (30, 44), (110, 44)])
+        pygame.draw.circle(santa, (255, 218, 185), (70, 50), 36)  # Head
+        pygame.draw.ellipse(santa, (255, 255, 255), (40, 56, 60, 50))  # Beard
+        pygame.draw.polygon(santa, (220, 20, 60), [(70, 0), (30, 44), (110, 44)])  # Hat
         pygame.draw.circle(santa, (255, 255, 255), (70, 4), 12)
         pygame.draw.ellipse(santa, (255, 255, 255), (24, 36, 92, 20))  # Brim
-        # Eyes
-        pygame.draw.circle(santa, (0, 0, 0), (56, 44), 6)
+        pygame.draw.circle(santa, (0, 0, 0), (56, 44), 6)  # Eyes
         pygame.draw.circle(santa, (0, 0, 0), (84, 44), 6)
-        # Nose
-        pygame.draw.circle(santa, (255, 150, 150), (70, 56), 8)
-        self.sprites['santa'] = santa
+        pygame.draw.circle(santa, (255, 150, 150), (70, 56), 8)  # Nose
+        self.sprites['christmas_santa'] = santa
 
         # Grinch - green, mean face (2x size: 120x160)
         grinch = pygame.Surface((120, 160), pygame.SRCALPHA)
-        # Body (green furry)
-        pygame.draw.ellipse(grinch, (0, 128, 0), (20, 80, 80, 80))
-        # Head (green)
-        pygame.draw.circle(grinch, (0, 128, 0), (60, 56), 44)
-        # Mean eyebrows
-        pygame.draw.line(grinch, (0, 80, 0), (30, 36), (56, 50), 6)
+        pygame.draw.ellipse(grinch, (0, 128, 0), (20, 80, 80, 80))  # Body
+        pygame.draw.circle(grinch, (0, 128, 0), (60, 56), 44)  # Head
+        pygame.draw.line(grinch, (0, 80, 0), (30, 36), (56, 50), 6)  # Eyebrows
         pygame.draw.line(grinch, (0, 80, 0), (90, 36), (64, 50), 6)
-        # Evil eyes (yellow)
-        pygame.draw.circle(grinch, (255, 255, 0), (44, 50), 12)
+        pygame.draw.circle(grinch, (255, 255, 0), (44, 50), 12)  # Eyes
         pygame.draw.circle(grinch, (255, 255, 0), (76, 50), 12)
         pygame.draw.circle(grinch, (255, 0, 0), (44, 50), 6)  # Red pupils
         pygame.draw.circle(grinch, (255, 0, 0), (76, 50), 6)
-        # Evil grin
-        pygame.draw.arc(grinch, (0, 80, 0), (30, 60, 60, 30), 3.5, 6.0, 4)
-        # Santa hat (stolen!)
-        pygame.draw.polygon(grinch, (220, 20, 60), [(60, 4), (24, 40), (96, 40)])
+        pygame.draw.arc(grinch, (0, 80, 0), (30, 60, 60, 30), 3.5, 6.0, 4)  # Grin
+        pygame.draw.polygon(grinch, (220, 20, 60), [(60, 4), (24, 40), (96, 40)])  # Stolen hat
         pygame.draw.circle(grinch, (255, 255, 255), (60, 6), 10)
-        self.sprites['grinch'] = grinch
+        self.sprites['christmas_grinch'] = grinch
+
+    def _create_chanukkah_sprites(self):
+        """Create Chanukkah-themed sprites."""
+        # Sufganiyah (jelly donut) - 120x140
+        donut = pygame.Surface((120, 140), pygame.SRCALPHA)
+        # Main donut body (tan/brown)
+        pygame.draw.ellipse(donut, (210, 180, 140), (10, 40, 100, 70))
+        # Lighter top
+        pygame.draw.ellipse(donut, (240, 210, 170), (20, 45, 80, 40))
+        # Powdered sugar spots
+        for _ in range(15):
+            x = random.randint(25, 95)
+            y = random.randint(50, 85)
+            pygame.draw.circle(donut, (255, 255, 255), (x, y), random.randint(2, 4))
+        # Jelly center (red blob on top)
+        pygame.draw.ellipse(donut, (200, 50, 50), (45, 55, 30, 20))
+        pygame.draw.ellipse(donut, (255, 100, 100), (50, 58, 15, 10))  # Highlight
+        self.sprites['chanukkah_bauble'] = donut
+
+        # Star of David - 100x140
+        star = pygame.Surface((100, 140), pygame.SRCALPHA)
+        cx, cy = 50, 70
+        size = 45
+        # Draw two overlapping triangles
+        # Upward triangle
+        points1 = [
+            (cx, cy - size),
+            (cx - size * 0.866, cy + size * 0.5),
+            (cx + size * 0.866, cy + size * 0.5)
+        ]
+        # Downward triangle
+        points2 = [
+            (cx, cy + size),
+            (cx - size * 0.866, cy - size * 0.5),
+            (cx + size * 0.866, cy - size * 0.5)
+        ]
+        # Gold fill
+        pygame.draw.polygon(star, (255, 215, 0), points1)
+        pygame.draw.polygon(star, (255, 215, 0), points2)
+        # Blue outline
+        pygame.draw.polygon(star, (0, 100, 200), points1, 4)
+        pygame.draw.polygon(star, (0, 100, 200), points2, 4)
+        # Inner glow
+        pygame.draw.circle(star, (255, 240, 150), (cx, cy), 15)
+        self.sprites['chanukkah_elf'] = star
+
+        # Menorah - 140x180
+        menorah = pygame.Surface((140, 180), pygame.SRCALPHA)
+        gold = (255, 215, 0)
+        dark_gold = (200, 170, 0)
+        # Base
+        pygame.draw.ellipse(menorah, gold, (30, 150, 80, 25))
+        pygame.draw.rect(menorah, gold, (60, 130, 20, 25))
+        # Main stem
+        pygame.draw.rect(menorah, gold, (65, 60, 10, 75))
+        # Arms (4 on each side)
+        arm_y = 70
+        for i, offset in enumerate([15, 30, 45, 60]):
+            # Left arm
+            pygame.draw.rect(menorah, gold, (70 - offset - 8, arm_y, 8, 4))
+            pygame.draw.rect(menorah, gold, (70 - offset - 8, arm_y, 4, 30 - i * 5))
+            # Right arm
+            pygame.draw.rect(menorah, gold, (70 + offset, arm_y, 8, 4))
+            pygame.draw.rect(menorah, gold, (70 + offset + 4, arm_y, 4, 30 - i * 5))
+        # Candles and flames
+        flame_color = (255, 165, 0)
+        flame_inner = (255, 255, 100)
+        candle_tops = [(70, 45)]  # Center (shamash - taller)
+        for offset in [15, 30, 45, 60]:
+            candle_tops.append((70 - offset - 6, 70 - (60 - offset) // 4))
+            candle_tops.append((70 + offset + 6, 70 - (60 - offset) // 4))
+        for x, y in candle_tops:
+            # Candle
+            pygame.draw.rect(menorah, (200, 200, 220), (x - 3, y, 6, 20))
+            # Flame
+            pygame.draw.ellipse(menorah, flame_color, (x - 5, y - 15, 10, 18))
+            pygame.draw.ellipse(menorah, flame_inner, (x - 3, y - 10, 6, 10))
+        self.sprites['chanukkah_santa'] = menorah
+
+        # Antiochus (Greek villain in toga) - 120x160
+        antiochus = pygame.Surface((120, 160), pygame.SRCALPHA)
+        # Toga body (white/cream)
+        pygame.draw.ellipse(antiochus, (240, 235, 220), (20, 70, 80, 90))
+        # Purple sash (royal)
+        pygame.draw.line(antiochus, (128, 0, 128), (35, 75), (85, 130), 12)
+        # Head
+        pygame.draw.circle(antiochus, (255, 218, 185), (60, 50), 35)
+        # Laurel wreath (golden leaves)
+        for angle in range(-60, 61, 20):
+            rad = math.radians(angle)
+            lx = 60 + math.sin(rad) * 30
+            ly = 35 + math.cos(rad) * 10
+            pygame.draw.ellipse(antiochus, (200, 170, 0), (lx - 5, ly - 8, 10, 16))
+        # Mean eyebrows
+        pygame.draw.line(antiochus, (100, 80, 60), (35, 38), (52, 46), 4)
+        pygame.draw.line(antiochus, (100, 80, 60), (85, 38), (68, 46), 4)
+        # Angry eyes
+        pygame.draw.circle(antiochus, (50, 50, 50), (48, 48), 8)
+        pygame.draw.circle(antiochus, (50, 50, 50), (72, 48), 8)
+        pygame.draw.circle(antiochus, (200, 50, 50), (48, 48), 4)  # Red glint
+        pygame.draw.circle(antiochus, (200, 50, 50), (72, 48), 4)
+        # Frowning mouth
+        pygame.draw.arc(antiochus, (100, 50, 50), (42, 55, 36, 25), 0.3, 2.8, 4)
+        # Beard
+        pygame.draw.ellipse(antiochus, (80, 60, 40), (45, 65, 30, 25))
+        self.sprites['chanukkah_grinch'] = antiochus
+
+    def _get_sprite(self, target_type: str):
+        """Get the correct sprite for current theme."""
+        return self.sprites.get(f"{self.theme}_{target_type}")
 
     def _init_sounds(self):
         """Initialize sound effects."""
@@ -232,7 +368,7 @@ class DanceModeGame:
                 ])
             )
 
-            # Santa/Elf catch (big success)
+            # Catch sound (big success)
             catch_duration = 0.2
             catch_samples = int(sample_rate * catch_duration)
             self.sounds['catch'] = pygame.mixer.Sound(
@@ -243,7 +379,7 @@ class DanceModeGame:
                 ])
             )
 
-            # Grinch (bad sound)
+            # Bad sound
             bad_duration = 0.3
             bad_samples = int(sample_rate * bad_duration)
             self.sounds['bad'] = pygame.mixer.Sound(
@@ -265,6 +401,17 @@ class DanceModeGame:
                 ])
             )
 
+            # Select sound
+            select_duration = 0.1
+            select_samples = int(sample_rate * select_duration)
+            self.sounds['select'] = pygame.mixer.Sound(
+                buffer=bytes([
+                    int(128 + 60 * math.sin(2 * math.pi * 500 * t / sample_rate) *
+                        (1 - t / select_samples))
+                    for t in range(select_samples)
+                ])
+            )
+
         except Exception as e:
             print(f"Warning: Could not initialize sounds: {e}")
 
@@ -277,7 +424,7 @@ class DanceModeGame:
 
     def start(self):
         """Start the game."""
-        print("Starting Christmas Popper!")
+        print("Starting DanceMode!")
         print("Initializing camera...")
 
         self.camera_ready = self.player_detector.start()
@@ -328,16 +475,45 @@ class DanceModeGame:
 
     def _handle_keydown(self, key: int) -> bool:
         if key == pygame.K_ESCAPE:
-            return False
+            if self.state == GameState.MENU:
+                return False
+            else:
+                # Go back to menu
+                self.state = GameState.MENU
+                return True
 
-        elif key == pygame.K_SPACE:
-            if self.state == GameState.TITLE:
+        elif key == pygame.K_SPACE or key == pygame.K_RETURN:
+            if self.state == GameState.MENU:
+                # Select theme and go to title
+                self.theme = 'christmas' if self.menu_selection == 0 else 'chanukkah'
+                self.state = GameState.TITLE
+                self._play_sound('select')
+            elif self.state == GameState.TITLE:
                 self._start_countdown()
             elif self.state == GameState.RESULTS:
-                self._start_countdown()
+                self.state = GameState.TITLE
+
+        elif key == pygame.K_UP or key == pygame.K_DOWN or key == pygame.K_LEFT or key == pygame.K_RIGHT:
+            if self.state == GameState.MENU:
+                # Toggle selection
+                self.menu_selection = 1 - self.menu_selection
+                self._play_sound('select')
+
+        elif key == pygame.K_1:
+            if self.state == GameState.MENU:
+                self.menu_selection = 0
+                self.theme = 'christmas'
+                self.state = GameState.TITLE
+                self._play_sound('select')
+
+        elif key == pygame.K_2:
+            if self.state == GameState.MENU:
+                self.menu_selection = 1
+                self.theme = 'chanukkah'
+                self.state = GameState.TITLE
+                self._play_sound('select')
 
         elif key == pygame.K_f or key == pygame.K_F11:
-            # Toggle fullscreen
             self._toggle_fullscreen()
 
         return True
@@ -349,8 +525,6 @@ class DanceModeGame:
         if not self.fullscreen:
             self.screen = pygame.display.set_mode((self.width, self.height),
                                                    pygame.DOUBLEBUF | pygame.RESIZABLE)
-        # Reinitialize snowflakes for new size
-        self.snowflakes.clear()
         self._init_snowflakes(100)
 
     def _toggle_fullscreen(self):
@@ -366,8 +540,6 @@ class DanceModeGame:
             self.height = 720
             self.screen = pygame.display.set_mode((self.width, self.height),
                                                    pygame.DOUBLEBUF | pygame.RESIZABLE)
-        # Reinitialize snowflakes for new size
-        self.snowflakes.clear()
         self._init_snowflakes(100)
 
     def _start_countdown(self):
@@ -400,7 +572,7 @@ class DanceModeGame:
             self._update_playing(dt)
 
     def _update_snowflakes(self, dt: float):
-        """Update falling snowflakes."""
+        """Update falling snowflakes/sparkles."""
         for snow in self.snowflakes:
             snow['y'] += snow['speed'] * dt
             snow['x'] += snow['drift'] * 20 * dt
@@ -412,11 +584,8 @@ class DanceModeGame:
         """Convert camera frame to pygame surface."""
         if self.camera_ready and self.player_detector.last_frame is not None:
             frame = self.player_detector.last_frame
-            # Convert BGR to RGB
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            # Resize to screen size
             frame_resized = cv2.resize(frame_rgb, (self.width, self.height))
-            # Rotate/flip for pygame
             frame_surface = pygame.surfarray.make_surface(frame_resized.swapaxes(0, 1))
             self.camera_surface = frame_surface
 
@@ -434,23 +603,15 @@ class DanceModeGame:
 
     def _update_playing(self, dt: float):
         """Update gameplay."""
-        # Update game timer
         self.game_timer -= dt
         if self.game_timer <= 0:
             self.game_timer = 0
             self._end_game()
             return
 
-        # Spawn targets
         self._update_spawning(dt)
-
-        # Update targets
         self._update_targets(dt)
-
-        # Check collisions with hands
         self._check_collisions()
-
-        # Update particles
         self._update_particles(dt)
 
     def _update_spawning(self, dt: float):
@@ -469,7 +630,6 @@ class DanceModeGame:
 
         speed = self.SPEEDS[target_type]
         if speed > 0:
-            # Random direction for moving targets
             angle = random.random() * 2 * math.pi
             vx = math.cos(angle) * speed
             vy = math.sin(angle) * speed
@@ -477,8 +637,6 @@ class DanceModeGame:
             vx, vy = 0, 0
 
         lifetime = self.LIFETIMES[target_type]
-
-        # Size varies by type (doubled for larger sprites)
         sizes = {'bauble': 100, 'elf': 110, 'santa': 140, 'grinch': 120}
 
         target = Target(
@@ -499,11 +657,9 @@ class DanceModeGame:
                     self.targets.remove(target)
                 continue
 
-            # Move
             target.x += target.vx * dt
             target.y += target.vy * dt
 
-            # Bounce off walls
             if target.x < 50 or target.x > self.width - 50:
                 target.vx = -target.vx
                 target.x = max(50, min(self.width - 50, target.x))
@@ -511,7 +667,6 @@ class DanceModeGame:
                 target.vy = -target.vy
                 target.y = max(50, min(self.height - 50, target.y))
 
-            # Lifetime
             target.lifetime -= dt
             if target.lifetime <= 0:
                 self.targets.remove(target)
@@ -521,7 +676,6 @@ class DanceModeGame:
         if not self.cached_players:
             return
 
-        # Get all hand positions
         hands = []
         for player in self.cached_players:
             if player.left_hand:
@@ -553,10 +707,8 @@ class DanceModeGame:
         self.score += points
         self.stats[target.target_type] += 1
 
-        # Spawn particles
         self._spawn_pop_particles(target.x, target.y, target.target_type)
 
-        # Play sound
         if target.target_type == 'grinch':
             self._play_sound('bad')
         elif target.target_type in ['santa', 'elf']:
@@ -566,17 +718,13 @@ class DanceModeGame:
 
     def _spawn_pop_particles(self, x: float, y: float, target_type: str):
         """Spawn celebration particles."""
-        colors = {
-            'bauble': [(255, 215, 0), (255, 240, 150)],
-            'elf': [(34, 139, 34), (255, 0, 0)],
-            'santa': [(220, 20, 60), (255, 255, 255)],
-            'grinch': [(0, 128, 0), (128, 128, 128)],
-        }
+        theme_config = self.THEMES[self.theme]
+        colors = theme_config['particle_colors'].get(target_type, [(255, 255, 255)])
 
         for _ in range(20):
             angle = random.random() * 2 * math.pi
             speed = random.random() * 300 + 100
-            color = random.choice(colors[target_type])
+            color = random.choice(colors)
 
             self.particles.append({
                 'x': x,
@@ -593,7 +741,7 @@ class DanceModeGame:
         for p in self.particles[:]:
             p['x'] += p['vx'] * dt
             p['y'] += p['vy'] * dt
-            p['vy'] += 400 * dt  # Gravity
+            p['vy'] += 400 * dt
             p['lifetime'] -= dt
             if p['lifetime'] <= 0:
                 self.particles.remove(p)
@@ -601,27 +749,29 @@ class DanceModeGame:
     def _end_game(self):
         """End the game and show results."""
         self.state = GameState.RESULTS
-        if self.score > self.high_score:
-            self.high_score = self.score
+        if self.score > self.high_scores[self.theme]:
+            self.high_scores[self.theme] = self.score
 
     def _render(self):
         """Render the game."""
-        # Draw camera feed as background (or black if no camera)
+        # Draw camera feed as background
         if self.camera_surface:
             self.screen.blit(self.camera_surface, (0, 0))
         else:
             self.screen.fill((20, 20, 40))
 
-        # Darken camera slightly for better visibility
+        # Darken camera slightly
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         overlay.fill((0, 0, 30, 80))
         self.screen.blit(overlay, (0, 0))
 
-        # Draw snowflakes
+        # Draw snowflakes/sparkles
         self._draw_snowflakes()
 
         # State-specific rendering
-        if self.state == GameState.TITLE:
+        if self.state == GameState.MENU:
+            self._render_menu()
+        elif self.state == GameState.TITLE:
             self._render_title()
         elif self.state == GameState.COUNTDOWN:
             self._render_countdown()
@@ -631,29 +781,117 @@ class DanceModeGame:
             self._render_results()
 
     def _draw_snowflakes(self):
-        """Draw falling snowflakes."""
-        for snow in self.snowflakes:
-            alpha = 150
-            size = snow['size']
-            pygame.draw.circle(self.screen, (255, 255, 255),
-                             (int(snow['x']), int(snow['y'])), size)
+        """Draw falling snowflakes (Christmas) or dreidels (Chanukkah)."""
+        if self.theme == 'chanukkah':
+            # Draw spinning dreidels
+            for snow in self.snowflakes:
+                x, y = int(snow['x']), int(snow['y'])
+                size = snow['size'] * 2
+                # Rotate based on position for spinning effect
+                angle = (pygame.time.get_ticks() / 500 + snow['x']) % (2 * math.pi)
+
+                # Draw dreidel body (rotated square)
+                points = []
+                for i in range(4):
+                    a = angle + i * math.pi / 2
+                    px = x + math.cos(a) * size
+                    py = y + math.sin(a) * size
+                    points.append((px, py))
+                pygame.draw.polygon(self.screen, (0, 100, 200), points)
+                pygame.draw.polygon(self.screen, (255, 215, 0), points, 1)
+
+                # Draw handle on top
+                handle_angle = angle - math.pi / 2
+                hx = x + math.cos(handle_angle) * size * 1.3
+                hy = y + math.sin(handle_angle) * size * 1.3
+                pygame.draw.line(self.screen, (0, 100, 200), (x, y), (int(hx), int(hy)), 2)
+        else:
+            # Draw snowflakes for Christmas
+            for snow in self.snowflakes:
+                pygame.draw.circle(self.screen, (255, 255, 255),
+                                 (int(snow['x']), int(snow['y'])), snow['size'])
+
+    def _render_menu(self):
+        """Render theme selection menu."""
+        # Title
+        title = self.font_huge.render("Dance Mode", True, (255, 255, 255))
+        self.screen.blit(title, title.get_rect(center=(self.width // 2, self.height // 4)))
+
+        subtitle = self.font_medium.render("Choose Your Theme", True, (200, 200, 200))
+        self.screen.blit(subtitle, subtitle.get_rect(center=(self.width // 2, self.height // 4 + 70)))
+
+        # Theme options
+        box_width = 300
+        box_height = 200
+        gap = 100
+        start_x = self.width // 2 - box_width - gap // 2
+        box_y = self.height // 2 - 30
+
+        themes = [
+            ('Christmas', (255, 50, 50), (50, 255, 50), '1'),
+            ('Chanukkah', (0, 100, 200), (255, 255, 255), '2'),
+        ]
+
+        for i, (name, color1, color2, key) in enumerate(themes):
+            box_x = start_x + i * (box_width + gap)
+            selected = (i == self.menu_selection)
+
+            # Draw box
+            box_color = color1 if selected else (80, 80, 80)
+            border_width = 6 if selected else 2
+            pygame.draw.rect(self.screen, box_color,
+                           (box_x, box_y, box_width, box_height), border_width, border_radius=15)
+
+            # Draw theme preview sprite
+            sprite_key = f"{'christmas' if i == 0 else 'chanukkah'}_bauble"
+            sprite = self.sprites.get(sprite_key)
+            if sprite:
+                sprite_rect = sprite.get_rect(center=(box_x + box_width // 2, box_y + 70))
+                self.screen.blit(sprite, sprite_rect)
+
+            # Theme name
+            name_color = (255, 255, 255) if selected else (150, 150, 150)
+            name_text = self.font_large.render(name, True, name_color)
+            self.screen.blit(name_text, name_text.get_rect(center=(box_x + box_width // 2, box_y + 155)))
+
+            # Key hint
+            key_text = self.font_small.render(f"Press {key}", True, (150, 150, 150))
+            self.screen.blit(key_text, key_text.get_rect(center=(box_x + box_width // 2, box_y + 185)))
+
+        # Instructions
+        pulse = abs(math.sin(pygame.time.get_ticks() / 500)) * 0.3 + 0.7
+        inst_color = (int(255 * pulse), int(255 * pulse), int(100 * pulse))
+        instructions = self.font_medium.render("Use Arrow Keys to Select, SPACE to Start", True, inst_color)
+        self.screen.blit(instructions, instructions.get_rect(center=(self.width // 2, self.height - 80)))
 
     def _render_title(self):
         """Render title screen."""
-        # Title
-        title = self.font_huge.render("Christmas", True, (255, 50, 50))
-        title2 = self.font_huge.render("Popper!", True, (50, 255, 50))
-        self.screen.blit(title, title.get_rect(center=(self.width // 2, self.height // 3 - 40)))
-        self.screen.blit(title2, title2.get_rect(center=(self.width // 2, self.height // 3 + 50)))
+        theme_config = self.THEMES[self.theme]
+        colors = theme_config['colors']
 
-        # Instructions
+        # Title
+        title = self.font_huge.render("Dance Mode", True, (255, 255, 255))
+        self.screen.blit(title, title.get_rect(center=(self.width // 2, self.height // 4 - 20)))
+
+        # Theme subtitle
+        theme_name = theme_config['name']
+        subtitle = self.font_large.render(f"~ {theme_name} Edition ~", True, colors['primary'])
+        self.screen.blit(subtitle, subtitle.get_rect(center=(self.width // 2, self.height // 4 + 60)))
+
+        # Instructions based on theme
+        bauble_name = theme_config['bauble_name']
+        elf_name = theme_config['elf_name']
+        santa_name = theme_config['santa_name']
+        grinch_name = theme_config['grinch_name']
+
         instructions = [
-            "Pop baubles with your hands!",
-            "Catch Elves (+50) and Santa (+100)!",
-            "Avoid the Grinch (-10)!",
+            f"Pop {bauble_name}s with your hands! (+5)",
+            f"Catch {elf_name}s (+50) and {santa_name}s (+100)!",
+            f"Avoid {grinch_name}! (-10)",
             "60 seconds - get the highest score!",
         ]
-        y = self.height // 2 + 50
+
+        y = self.height // 2 + 30
         for line in instructions:
             text = self.font_medium.render(line, True, (255, 255, 255))
             self.screen.blit(text, text.get_rect(center=(self.width // 2, y)))
@@ -666,9 +904,14 @@ class DanceModeGame:
         self.screen.blit(start, start.get_rect(center=(self.width // 2, self.height - 100)))
 
         # High score
-        if self.high_score > 0:
-            hs = self.font_medium.render(f"High Score: {self.high_score}", True, (255, 215, 0))
+        high_score = self.high_scores[self.theme]
+        if high_score > 0:
+            hs = self.font_medium.render(f"High Score: {high_score}", True, colors['accent'])
             self.screen.blit(hs, hs.get_rect(center=(self.width // 2, self.height - 40)))
+
+        # Back hint
+        back = self.font_small.render("ESC to change theme", True, (150, 150, 150))
+        self.screen.blit(back, (20, self.height - 40))
 
     def _render_countdown(self):
         """Render countdown."""
@@ -687,26 +930,20 @@ class DanceModeGame:
         rendered = font.render(text, True, color)
         self.screen.blit(rendered, rendered.get_rect(center=(self.width // 2, self.height // 2)))
 
-        # "Get Ready" text
         ready = self.font_medium.render("Get Ready!", True, (255, 255, 255))
         self.screen.blit(ready, ready.get_rect(center=(self.width // 2, self.height // 3)))
 
     def _render_playing(self):
         """Render gameplay."""
-        # Draw skeleton overlay first (behind targets)
         self._draw_skeleton_overlay()
 
-        # Draw targets
         for target in self.targets:
             self._draw_target(target)
 
-        # Draw particles
         for p in self.particles:
-            alpha = int(255 * (p['lifetime'] / 0.8))
             pygame.draw.circle(self.screen, p['color'],
                              (int(p['x']), int(p['y'])), p['size'])
 
-        # Draw UI
         self._draw_game_ui()
 
     def _draw_skeleton_overlay(self):
@@ -714,18 +951,16 @@ class DanceModeGame:
         if not self.cached_players:
             return
 
-        # Colors for different players
         player_colors = [
-            (255, 100, 150),  # Pink
-            (100, 200, 255),  # Blue
-            (150, 255, 100),  # Green
-            (255, 200, 100),  # Orange
+            (255, 100, 150),
+            (100, 200, 255),
+            (150, 255, 100),
+            (255, 200, 100),
         ]
 
         for i, player in enumerate(self.cached_players[:4]):
             color = player_colors[i % len(player_colors)]
 
-            # Get all joint positions
             joints = {
                 'nose': player.nose,
                 'left_shoulder': player.left_shoulder,
@@ -738,7 +973,6 @@ class DanceModeGame:
                 'right_hip': player.right_hip,
             }
 
-            # Draw skeleton connections
             connections = [
                 ('left_shoulder', 'right_shoulder'),
                 ('left_shoulder', 'left_elbow'),
@@ -758,12 +992,9 @@ class DanceModeGame:
                                    (int(start[0]), int(start[1])),
                                    (int(end[0]), int(end[1])), 4)
 
-            # Draw joints
             for joint_name, pos in joints.items():
                 if pos:
-                    # Larger circles for hands
                     if 'hand' in joint_name:
-                        # Hand - large glowing circle
                         pygame.draw.circle(self.screen, (255, 255, 255),
                                          (int(pos[0]), int(pos[1])), 25, 3)
                         pygame.draw.circle(self.screen, color,
@@ -771,7 +1002,6 @@ class DanceModeGame:
                         pygame.draw.circle(self.screen, (255, 255, 255),
                                          (int(pos[0]), int(pos[1])), 8)
                     else:
-                        # Other joints - smaller
                         pygame.draw.circle(self.screen, color,
                                          (int(pos[0]), int(pos[1])), 8)
                         pygame.draw.circle(self.screen, (255, 255, 255),
@@ -780,10 +1010,8 @@ class DanceModeGame:
     def _draw_target(self, target: Target):
         """Draw a single target."""
         if target.popped:
-            # Pop animation - expand and fade
             scale = 1.0 + target.pop_timer * 3
             alpha = int(255 * (1 - target.pop_timer / 0.3))
-            # Just draw expanding circle
             size = int(target.size * scale)
             surf = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
             color = (255, 255, 100, alpha) if target.target_type != 'grinch' else (100, 100, 100, alpha)
@@ -791,17 +1019,14 @@ class DanceModeGame:
             self.screen.blit(surf, (int(target.x - size), int(target.y - size)))
             return
 
-        # Draw sprite
-        sprite = self.sprites.get(target.target_type)
+        sprite = self._get_sprite(target.target_type)
         if sprite:
-            # Pulsing effect
             pulse = 1.0 + math.sin(pygame.time.get_ticks() / 200) * 0.1
             scaled = pygame.transform.scale(sprite,
                 (int(sprite.get_width() * pulse), int(sprite.get_height() * pulse)))
             rect = scaled.get_rect(center=(int(target.x), int(target.y)))
             self.screen.blit(scaled, rect)
 
-        # Draw lifetime indicator for moving targets
         if target.target_type in ['elf', 'santa', 'grinch']:
             progress = target.lifetime / self.LIFETIMES[target.target_type]
             bar_width = 40
@@ -809,52 +1034,55 @@ class DanceModeGame:
             bar_x = int(target.x - bar_width // 2)
             bar_y = int(target.y + target.size // 2 + 10)
 
-            # Background
             pygame.draw.rect(self.screen, (50, 50, 50),
                            (bar_x, bar_y, bar_width, bar_height))
-            # Progress
             color = (50, 255, 50) if progress > 0.3 else (255, 100, 50)
             pygame.draw.rect(self.screen, color,
                            (bar_x, bar_y, int(bar_width * progress), bar_height))
 
     def _draw_game_ui(self):
         """Draw game UI elements."""
-        # Timer bar at top
+        theme_config = self.THEMES[self.theme]
+        colors = theme_config['colors']
+
+        # Timer bar
         timer_progress = self.game_timer / 60.0
         bar_width = self.width - 200
         bar_height = 20
         bar_x = 100
         bar_y = 20
 
-        # Background
         pygame.draw.rect(self.screen, (50, 50, 50),
                         (bar_x, bar_y, bar_width, bar_height), border_radius=10)
-        # Progress
-        color = (50, 255, 50) if timer_progress > 0.3 else (255, 50, 50)
-        pygame.draw.rect(self.screen, color,
+        bar_color = (50, 255, 50) if timer_progress > 0.3 else (255, 50, 50)
+        pygame.draw.rect(self.screen, bar_color,
                         (bar_x, bar_y, int(bar_width * timer_progress), bar_height),
                         border_radius=10)
 
-        # Timer text
         seconds = int(self.game_timer)
         timer_text = self.font_medium.render(f"{seconds}s", True, (255, 255, 255))
         self.screen.blit(timer_text, (bar_x - 60, bar_y - 5))
 
-        # Score (left side)
-        score_text = self.font_large.render(f"Score: {self.score}", True, (255, 215, 0))
+        # Score
+        score_text = self.font_large.render(f"Score: {self.score}", True, colors['accent'])
         self.screen.blit(score_text, (20, 60))
 
-        # High score (right side)
-        hs_text = self.font_small.render(f"Best: {self.high_score}", True, (200, 200, 200))
+        # High score
+        hs_text = self.font_small.render(f"Best: {self.high_scores[self.theme]}", True, (200, 200, 200))
         self.screen.blit(hs_text, (self.width - 150, 20))
 
-        # Point values legend (bottom)
+        # Legend
         legend_y = self.height - 35
+        bauble_name = theme_config['bauble_name']
+        elf_name = theme_config['elf_name']
+        santa_name = theme_config['santa_name']
+        grinch_name = theme_config['grinch_name']
+
         legend_items = [
-            ("Bauble +5", (255, 215, 0)),
-            ("Elf +50", (34, 139, 34)),
-            ("Santa +100", (220, 20, 60)),
-            ("Grinch -10", (0, 128, 0)),
+            (f"{bauble_name} +5", colors['accent']),
+            (f"{elf_name} +50", colors['primary']),
+            (f"{santa_name} +100", colors['secondary']),
+            (f"{grinch_name} -10", (128, 128, 128)),
         ]
         x = 20
         for text, color in legend_items:
@@ -864,25 +1092,34 @@ class DanceModeGame:
 
     def _render_results(self):
         """Render results screen."""
+        theme_config = self.THEMES[self.theme]
+        colors = theme_config['colors']
+
         # Dark overlay
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         self.screen.blit(overlay, (0, 0))
 
         # Title
-        if self.score >= self.high_score and self.score > 0:
-            title = self.font_huge.render("NEW HIGH SCORE!", True, (255, 215, 0))
+        high_score = self.high_scores[self.theme]
+        if self.score >= high_score and self.score > 0:
+            title = self.font_huge.render("NEW HIGH SCORE!", True, colors['accent'])
         else:
-            title = self.font_huge.render("Time's Up!", True, (255, 100, 100))
+            title = self.font_huge.render("Time's Up!", True, colors['primary'])
         self.screen.blit(title, title.get_rect(center=(self.width // 2, 80)))
 
         # Score breakdown
         y = 180
+        bauble_name = theme_config['bauble_name']
+        elf_name = theme_config['elf_name']
+        santa_name = theme_config['santa_name']
+        grinch_name = theme_config['grinch_name']
+
         breakdown = [
-            (f"Baubles: {self.stats['bauble']}", f"× 5 = {self.stats['bauble'] * 5}", (255, 215, 0)),
-            (f"Elves: {self.stats['elf']}", f"× 50 = {self.stats['elf'] * 50}", (34, 139, 34)),
-            (f"Santas: {self.stats['santa']}", f"× 100 = {self.stats['santa'] * 100}", (220, 20, 60)),
-            (f"Grinches: {self.stats['grinch']}", f"× -10 = {self.stats['grinch'] * -10}", (0, 128, 0)),
+            (f"{bauble_name}s: {self.stats['bauble']}", f"x 5 = {self.stats['bauble'] * 5}", colors['accent']),
+            (f"{elf_name}s: {self.stats['elf']}", f"x 50 = {self.stats['elf'] * 50}", colors['primary']),
+            (f"{santa_name}s: {self.stats['santa']}", f"x 100 = {self.stats['santa'] * 100}", colors['secondary']),
+            (f"{grinch_name}: {self.stats['grinch']}", f"x -10 = {self.stats['grinch'] * -10}", (128, 128, 128)),
         ]
 
         for label, points, color in breakdown:
@@ -892,26 +1129,26 @@ class DanceModeGame:
             self.screen.blit(points_text, (self.width // 2 + 50, y))
             y += 60
 
-        # Line
         pygame.draw.line(self.screen, (255, 255, 255),
                         (self.width // 2 - 200, y), (self.width // 2 + 200, y), 2)
         y += 20
 
-        # Total
         total_text = self.font_large.render(f"TOTAL: {self.score}", True, (255, 255, 100))
         self.screen.blit(total_text, total_text.get_rect(center=(self.width // 2, y + 30)))
 
-        # High score
         y += 100
-        hs_text = self.font_medium.render(f"High Score: {self.high_score}", True, (200, 200, 200))
+        hs_text = self.font_medium.render(f"High Score: {high_score}", True, (200, 200, 200))
         self.screen.blit(hs_text, hs_text.get_rect(center=(self.width // 2, y)))
 
-        # Play again
         y += 80
         pulse = abs(math.sin(pygame.time.get_ticks() / 500)) * 0.3 + 0.7
         color = (int(255 * pulse), int(255 * pulse), int(100 * pulse))
         again = self.font_medium.render("Press SPACE to Play Again!", True, color)
         self.screen.blit(again, again.get_rect(center=(self.width // 2, y)))
+
+        # Back hint
+        back = self.font_small.render("ESC to change theme", True, (150, 150, 150))
+        self.screen.blit(back, (20, self.height - 40))
 
     def _cleanup(self):
         """Clean up resources."""
@@ -923,7 +1160,7 @@ def main():
     """Entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Christmas Popper!")
+    parser = argparse.ArgumentParser(description="DanceMode!")
     parser.add_argument('--width', type=int, default=1280, help='Screen width')
     parser.add_argument('--height', type=int, default=720, help='Screen height')
     parser.add_argument('--fullscreen', action='store_true', help='Fullscreen mode')
