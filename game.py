@@ -201,20 +201,38 @@ class DanceModeGame:
     def run(self):
         """Main game loop."""
         running = True
+        frame_count = 0
+        detection_interval = 2  # Only detect every N frames to reduce lag
+
+        def process_events():
+            """Process pygame events - returns False if should quit."""
+            nonlocal running
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return False
+                elif event.type == pygame.KEYDOWN:
+                    if not self._handle_keydown(event.key):
+                        return False
+            return True
 
         while running:
             dt = self.clock.tick(self.target_fps) / 1000.0
+            frame_count += 1
 
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                elif event.type == pygame.KEYDOWN:
-                    running = self._handle_keydown(event.key)
+            # Process events FIRST (responsive keyboard)
+            if not process_events():
+                running = False
+                continue
 
-            # Detect players
-            if self.camera_ready:
+            # Detect players (skip some frames to reduce lag)
+            if self.camera_ready and frame_count % detection_interval == 0:
                 self.cached_players = self.player_detector.detect_players(
                     self.width, self.height)
+
+            # Process events AGAIN after detection (catch any missed during slow detection)
+            if not process_events():
+                running = False
+                continue
 
             # Update
             self._update(dt)
@@ -222,7 +240,7 @@ class DanceModeGame:
             # Render
             self._render()
 
-            # Camera preview
+            # Camera preview (non-blocking)
             self._show_camera_preview()
 
             pygame.display.flip()
@@ -505,12 +523,13 @@ class DanceModeGame:
 
         # Draw countdown rings around targets
         time_remaining = self.dance_manager.get_time_remaining()
+        max_time = self.dance_manager.move_timeout
         if left_target:
             self.target_renderer.render_countdown_ring(
-                self.screen, left_target, time_remaining, 2.0)
+                self.screen, left_target, time_remaining, max_time)
         if right_target:
             self.target_renderer.render_countdown_ring(
-                self.screen, right_target, time_remaining, 2.0)
+                self.screen, right_target, time_remaining, max_time)
 
         # Current move instruction
         move = self.dance_manager.get_current_move()

@@ -158,10 +158,10 @@ class DanceTargetManager:
         self.current_sequence: Optional[DanceSequence] = None
         self.current_move_index: int = 0
         self.move_timer: float = 0.0
-        self.move_timeout: float = 2.0  # Seconds to hit the target
+        self.move_timeout: float = 5.0  # Seconds to hit the target (kid-friendly)
 
         # Target hit detection
-        self.hit_radius: float = 80  # Pixels - how close hand needs to be
+        self.hit_radius: float = 150  # Pixels - how close hand needs to be (generous for kids)
         self.left_hand_hit: bool = False
         self.right_hand_hit: bool = False
 
