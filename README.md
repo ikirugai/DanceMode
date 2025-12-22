@@ -81,4 +81,4 @@ python main.py
 
 ## Have Fun!
 
-Made with love for Christmas. Merry Christmas!
+Merry Christmas!
