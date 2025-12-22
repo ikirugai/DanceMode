@@ -1,148 +1,80 @@
-# KeepyUppy!
+# DanceMode!
 
-A fun, motion-controlled balloon game inspired by the classic "keep the balloon in the air" game! Uses your webcam to detect your body movements so you can play just like a Kinect or Wii game.
+An interactive dance game where you follow on-screen dance moves using your body! Uses webcam motion tracking to detect your hand positions.
 
 ## Features
 
-- **Motion Control**: Uses your webcam and MediaPipe pose detection to track your body movements
-- **Cartoon Graphics**: Bright, colorful Bluey-inspired art style (kid-friendly!)
-- **Physics-Based Gameplay**: Realistic balloon physics with gravity and random wind gusts
-- **Scoring System**: Track your time and compete for high scores (persisted between sessions)
-- **Easy to Play**: Just wave your hands to hit the balloon and keep it from touching the ground!
+- **5 Kid-Friendly Dances**: YMCA, Baby Shark, Hokey Pokey, Macarena, Freeze Dance
+- **Motion Tracking**: Uses MediaPipe pose detection via webcam
+- **Colorful Dancers**: Fun stick-figure avatars that follow your movements
+- **Scoring System**: Points for hitting moves, streak bonuses
+- **Up to 4 Players**: Multiple people can dance together
 
-## Quick Start
+## How to Play
 
-### Option 1: Using the Launcher Script (Recommended)
-
-```bash
-# Make the script executable (first time only)
-chmod +x run_game.sh
-
-# Run the game
-./run_game.sh
-```
-
-The launcher script will automatically:
-- Create a virtual environment
-- Install all dependencies
-- Start the game
-
-### Option 2: Manual Setup
-
-```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the game
-python main.py
-```
+1. Run `./run_game.sh`
+2. Press **SPACE** to start
+3. Use **LEFT/RIGHT** arrows to select a dance
+4. Press **SPACE** to begin
+5. Move your hands to the target circles before time runs out!
+6. Get points for each move you hit
 
 ## Controls
 
 | Key | Action |
 |-----|--------|
-| **SPACE** | Start game / Play again |
-| **ESC** | Pause / Resume / Quit |
-| **R** | Restart game |
-
-**Physical Controls**: Wave your hands in front of the webcam to hit the balloon!
-
-## Command Line Options
-
-```bash
-python main.py --help
-
-Options:
-  --width WIDTH      Screen width (default: 1280)
-  --height HEIGHT    Screen height (default: 720)
-  --fullscreen       Run in fullscreen mode
-```
-
-## How to Play
-
-1. **Start the Game**: Press SPACE on the title screen
-2. **Get Ready**: A 3-second countdown will begin
-3. **Keep it Up!**: Use your hands to hit the balloon and prevent it from touching the ground
-4. **Watch for Wind**: Random wind gusts will push the balloon around - be ready!
-5. **Beat Your Score**: Try to keep the balloon up for as long as possible
+| SPACE | Start / Select / Continue |
+| LEFT/RIGHT | Choose dance |
+| ESC | Pause / Quit |
+| R | Replay dance |
+| Q (in camera window) | Hide camera preview |
 
 ## Requirements
 
-- macOS (tested on macOS 14+)
+- macOS 12+ (or Linux/Windows with Python 3.8+)
+- Webcam
 - Python 3.8+
-- Webcam (built-in or external)
-- The following Python packages:
-  - pygame >= 2.5.0
-  - opencv-python >= 4.8.0
-  - mediapipe >= 0.10.0
-  - numpy >= 1.24.0
 
-## Camera Permissions
+## Installation
 
-On first run, macOS will ask for camera permissions. You must grant access for the game to detect your movements.
-
-If you accidentally denied access:
-1. Go to **System Settings > Privacy & Security > Camera**
-2. Find your terminal app (Terminal, iTerm2, etc.) or Python
-3. Enable camera access
-
-## Troubleshooting
-
-### "Camera not detected" message
-- Make sure your webcam is connected
-- Grant camera permissions (see above)
-- Close other apps that might be using the camera
-
-### Game runs slowly
-- Close other applications
-- Try a smaller window size: `python main.py --width 800 --height 600`
-- Make sure you have enough lighting for good pose detection
-
-### Dependencies fail to install
 ```bash
-# Try installing each package individually
-pip install pygame
-pip install opencv-python
-pip install mediapipe
-pip install numpy
+# Clone the repo
+git clone https://github.com/ikirugai/DanceMode.git
+cd DanceMode
+
+# Run the game (auto-installs dependencies)
+./run_game.sh
 ```
 
-### MediaPipe installation issues on M1/M2 Macs
-```bash
-# Install with Rosetta compatibility if needed
-arch -x86_64 pip install mediapipe
-```
+## Dance Moves
 
-## Project Structure
+### YMCA (Easy)
+Make the letters with your arms!
 
-```
-KeepyUppy/
-├── main.py              # Entry point
-├── game.py              # Main game loop and state management
-├── balloon.py           # Balloon physics engine
-├── player_detection.py  # MediaPipe pose detection
-├── avatar.py            # Cartoon avatar rendering
-├── scoring.py           # Score tracking and persistence
-├── assets_generator.py  # Programmatic asset generation
-├── requirements.txt     # Python dependencies
-├── run_game.sh          # Launcher script
-└── README.md            # This file
-```
+### Baby Shark (Easy)
+Chomping hand movements for each shark family member.
 
-## Credits
+### Hokey Pokey (Easy)
+Put your hands in, out, and shake them all about!
 
-- Built with [Pygame](https://www.pygame.org/)
-- Pose detection powered by [MediaPipe](https://mediapipe.dev/)
-- Inspired by the art style of [Bluey](https://www.bluey.tv/) (not affiliated)
+### Macarena (Medium)
+Classic arm movements - arms out, flip, shoulders, head.
 
-## License
+### Freeze Dance (Medium)
+Strike random poses - T-pose, airplane, star, and more!
 
-MIT License - Feel free to modify and share!
+## Scoring
 
----
+- **100 points** per move hit
+- **50 bonus points** per streak level
+- Hit moves within 2 seconds to score
+- Build streaks for higher scores!
 
-Have fun keeping that balloon up! 🎈
+## Ratings
+
+| Accuracy | Rating |
+|----------|--------|
+| 90%+ | SUPERSTAR! |
+| 70%+ | Great Moves! |
+| 50%+ | Good Try! |
+| <50% | Keep Practicing! |

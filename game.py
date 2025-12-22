@@ -1,48 +1,62 @@
 """
-KeepyUppy Main Game Module
-The core game logic that ties together all components.
+DanceMode Main Game Module
+Interactive dance game where players follow on-screen dance moves.
 """
 
 import pygame
 import cv2
 import math
 import sys
+import random
 from typing import List, Optional, Tuple
 from enum import Enum
 
 from player_detection import PlayerDetector, PlayerLandmarks
-from balloon import BalloonPhysics
-from avatar import AvatarRenderer, BlueyColors
-from scoring import ScoringSystem
-from assets_generator import AssetGenerator, Palette, create_game_font
+from dance_targets import DanceTargetManager, DanceLibrary
+from dancer_avatar import DancerAvatar, TargetRenderer, DancerColors
+
+
+# Fun color palette for DanceMode
+class DancePalette:
+    # Backgrounds
+    BG_DARK = (30, 20, 50)
+    BG_PURPLE = (60, 30, 80)
+    BG_GRADIENT_TOP = (40, 20, 60)
+    BG_GRADIENT_BOTTOM = (80, 40, 100)
+
+    # UI Colors
+    WHITE = (255, 255, 255)
+    BLACK = (30, 30, 40)
+    GOLD = (255, 215, 0)
+    SILVER = (192, 192, 192)
+
+    # Accent colors
+    PINK = (255, 100, 150)
+    CYAN = (100, 255, 255)
+    YELLOW = (255, 255, 100)
+    GREEN = (100, 255, 150)
+    ORANGE = (255, 180, 100)
 
 
 class GameState(Enum):
     """Game state machine states."""
-    TITLE = "title"
+    MENU = "menu"
+    DANCE_SELECT = "dance_select"
     COUNTDOWN = "countdown"
     PLAYING = "playing"
-    GAME_OVER = "game_over"
+    RESULTS = "results"
     PAUSED = "paused"
 
 
-class KeepyUppyGame:
+class DanceModeGame:
     """
-    Main game class for KeepyUppy.
-    A motion-controlled balloon keeping game with Bluey-inspired graphics.
+    Main game class for DanceMode.
+    An interactive dance game with motion tracking.
     """
 
-    def __init__(self, width: int = 1280, height: int = 720, fullscreen: bool = False, show_camera: bool = True):
-        """
-        Initialize the game.
-
-        Args:
-            width: Screen width
-            height: Screen height
-            fullscreen: Whether to run in fullscreen mode
-            show_camera: Whether to show camera preview window
-        """
-        # Initialize pygame
+    def __init__(self, width: int = 1280, height: int = 720,
+                 fullscreen: bool = False, show_camera: bool = True):
+        """Initialize the game."""
         pygame.init()
         pygame.mixer.init()
 
@@ -58,85 +72,87 @@ class KeepyUppyGame:
             self.height = info.current_h
 
         self.screen = pygame.display.set_mode((self.width, self.height), flags)
-        pygame.display.set_caption("KeepyUppy! - Keep the Balloon in the Air!")
+        pygame.display.set_caption("DanceMode! - Follow the Moves!")
 
-        # Initialize clock for consistent framerate
+        # Clock
         self.clock = pygame.time.Clock()
         self.target_fps = 60
 
-        # Initialize game components
+        # Game components
         self.player_detector = PlayerDetector()
-        self.balloon = BalloonPhysics(self.width, self.height)
-        self.avatar_renderer = AvatarRenderer(self.width, self.height)
-        self.scoring = ScoringSystem()
-
-        # Generate assets
-        self.asset_gen = AssetGenerator(self.width, self.height)
-        self.assets = self.asset_gen.generate_all()
+        self.dance_manager = DanceTargetManager(self.width, self.height)
+        self.dancer_avatar = DancerAvatar(self.width, self.height)
+        self.target_renderer = TargetRenderer()
 
         # Fonts
-        self.font_large = create_game_font(72)
-        self.font_medium = create_game_font(48)
-        self.font_small = create_game_font(32)
+        self.font_large = pygame.font.Font(None, 72)
+        self.font_medium = pygame.font.Font(None, 48)
+        self.font_small = pygame.font.Font(None, 32)
 
         # Game state
-        self.state = GameState.TITLE
+        self.state = GameState.MENU
         self.countdown_timer = 3.0
-        self.game_over_timer = 0.0
-        self.new_high_score = False
+        self.selected_dance_index = 0
+        self.available_dances = DanceLibrary.get_all_sequences()
 
-        # Cloud positions (decorative)
-        self.clouds = [
-            {'x': 100, 'y': 80, 'speed': 15, 'asset': 'cloud1'},
-            {'x': 400, 'y': 120, 'speed': 20, 'asset': 'cloud2'},
-            {'x': 800, 'y': 60, 'speed': 12, 'asset': 'cloud1'},
-            {'x': 1100, 'y': 140, 'speed': 18, 'asset': 'cloud2'},
-        ]
-
-        # Track previous hand positions for velocity calculation
-        self.prev_hand_positions = {}
-
-        # Camera status
+        # Camera
         self.camera_ready = False
         self.show_camera = show_camera
-        self.cached_players = []  # Cache detected players to avoid double detection
+        self.cached_players = []
 
-        # Sound effects (simple beeps using pygame)
+        # Visual effects
+        self.bg_hue = 0
+        self.stars = self._create_stars(50)
+        self.disco_time = 0
+
+        # Sounds
         self._init_sounds()
+
+    def _create_stars(self, count: int) -> List[dict]:
+        """Create background stars for disco effect."""
+        stars = []
+        for _ in range(count):
+            stars.append({
+                'x': random.randint(0, self.width),
+                'y': random.randint(0, self.height),
+                'size': random.randint(2, 5),
+                'speed': random.random() * 2 + 1,
+                'brightness': random.random(),
+            })
+        return stars
 
     def _init_sounds(self):
         """Initialize sound effects."""
         self.sounds = {}
         try:
-            # Generate simple sounds programmatically
             sample_rate = 44100
 
-            # Hit sound (short boop)
-            hit_duration = 0.1
+            # Hit sound (happy boop)
+            hit_duration = 0.15
             hit_samples = int(sample_rate * hit_duration)
             hit_sound = pygame.mixer.Sound(
                 buffer=bytes([
-                    int(128 + 100 * math.sin(2 * math.pi * 440 * t / sample_rate) *
+                    int(128 + 100 * math.sin(2 * math.pi * 660 * t / sample_rate) *
                         (1 - t / hit_samples))
                     for t in range(hit_samples)
                 ])
             )
             self.sounds['hit'] = hit_sound
 
-            # Pop sound
-            pop_duration = 0.2
-            pop_samples = int(sample_rate * pop_duration)
-            pop_sound = pygame.mixer.Sound(
+            # Miss sound
+            miss_duration = 0.2
+            miss_samples = int(sample_rate * miss_duration)
+            miss_sound = pygame.mixer.Sound(
                 buffer=bytes([
-                    int(128 + 100 * math.sin(2 * math.pi * (200 + t * 2) * t / sample_rate) *
-                        max(0, 1 - t / pop_samples))
-                    for t in range(pop_samples)
+                    int(128 + 60 * math.sin(2 * math.pi * 200 * t / sample_rate) *
+                        (1 - t / miss_samples))
+                    for t in range(miss_samples)
                 ])
             )
-            self.sounds['pop'] = pop_sound
+            self.sounds['miss'] = miss_sound
 
             # Countdown beep
-            beep_duration = 0.15
+            beep_duration = 0.1
             beep_samples = int(sample_rate * beep_duration)
             beep_sound = pygame.mixer.Sound(
                 buffer=bytes([
@@ -146,6 +162,18 @@ class KeepyUppyGame:
                 ])
             )
             self.sounds['beep'] = beep_sound
+
+            # Success fanfare
+            success_duration = 0.4
+            success_samples = int(sample_rate * success_duration)
+            success_sound = pygame.mixer.Sound(
+                buffer=bytes([
+                    int(128 + 80 * math.sin(2 * math.pi * (440 + t * 0.5) * t / sample_rate) *
+                        max(0, 1 - t / success_samples))
+                    for t in range(success_samples)
+                ])
+            )
+            self.sounds['success'] = success_sound
 
         except Exception as e:
             print(f"Warning: Could not initialize sounds: {e}")
@@ -160,13 +188,13 @@ class KeepyUppyGame:
                 pass
 
     def start(self):
-        """Start the game (initialize camera and enter main loop)."""
-        print("Starting KeepyUppy!")
+        """Start the game."""
+        print("Starting DanceMode!")
         print("Initializing camera...")
 
         self.camera_ready = self.player_detector.start()
         if not self.camera_ready:
-            print("Warning: Camera not available. Running in demo mode.")
+            print("Warning: Camera not available.")
 
         self.run()
 
@@ -175,428 +203,410 @@ class KeepyUppyGame:
         running = True
 
         while running:
-            # Calculate delta time
             dt = self.clock.tick(self.target_fps) / 1000.0
 
-            # Handle events
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
                 elif event.type == pygame.KEYDOWN:
                     running = self._handle_keydown(event.key)
 
-            # Update game state
+            # Detect players
+            if self.camera_ready:
+                self.cached_players = self.player_detector.detect_players(
+                    self.width, self.height)
+
+            # Update
             self._update(dt)
 
             # Render
             self._render()
 
-            # Show camera preview window
+            # Camera preview
             self._show_camera_preview()
 
-            # Update display
             pygame.display.flip()
 
         self._cleanup()
 
     def _handle_keydown(self, key: int) -> bool:
-        """
-        Handle keyboard input.
-
-        Returns:
-            False if game should quit, True otherwise
-        """
+        """Handle keyboard input."""
         if key == pygame.K_ESCAPE:
             if self.state == GameState.PLAYING:
                 self.state = GameState.PAUSED
             elif self.state == GameState.PAUSED:
                 self.state = GameState.PLAYING
+            elif self.state in [GameState.MENU, GameState.DANCE_SELECT]:
+                return False
             else:
-                return False  # Quit game
+                self.state = GameState.MENU
 
         elif key == pygame.K_SPACE:
-            if self.state == GameState.TITLE:
+            if self.state == GameState.MENU:
+                self.state = GameState.DANCE_SELECT
+            elif self.state == GameState.DANCE_SELECT:
                 self._start_countdown()
-            elif self.state == GameState.GAME_OVER:
-                self._start_countdown()
+            elif self.state == GameState.RESULTS:
+                self.state = GameState.MENU
             elif self.state == GameState.PAUSED:
                 self.state = GameState.PLAYING
 
+        elif key == pygame.K_LEFT:
+            if self.state == GameState.DANCE_SELECT:
+                self.selected_dance_index = (self.selected_dance_index - 1) % len(self.available_dances)
+                self._play_sound('beep')
+
+        elif key == pygame.K_RIGHT:
+            if self.state == GameState.DANCE_SELECT:
+                self.selected_dance_index = (self.selected_dance_index + 1) % len(self.available_dances)
+                self._play_sound('beep')
+
         elif key == pygame.K_r:
-            if self.state in [GameState.GAME_OVER, GameState.PAUSED]:
+            if self.state in [GameState.RESULTS, GameState.PAUSED]:
                 self._start_countdown()
 
         return True
 
     def _start_countdown(self):
-        """Start the countdown before gameplay."""
+        """Start countdown before dance."""
         self.state = GameState.COUNTDOWN
         self.countdown_timer = 3.0
-        self.balloon.reset()
-        self.scoring.start_game()
+        selected_dance = self.available_dances[self.selected_dance_index]
+        self.dance_manager.start_sequence(selected_dance)
         self._play_sound('beep')
 
     def _update(self, dt: float):
         """Update game logic."""
-        # Always detect players for camera preview (do this once per frame)
-        if self.camera_ready:
-            self.cached_players = self.player_detector.detect_players(self.width, self.height)
+        # Update visual effects
+        self.disco_time += dt
+        self.bg_hue = (self.bg_hue + dt * 10) % 360
 
-        # Update clouds (always moving for ambiance)
-        for cloud in self.clouds:
-            cloud['x'] += cloud['speed'] * dt
-            if cloud['x'] > self.width + 150:
-                cloud['x'] = -150
+        # Update stars
+        for star in self.stars:
+            star['brightness'] = (math.sin(self.disco_time * star['speed']) + 1) / 2
 
-        # State-specific updates
+        # State updates
         if self.state == GameState.COUNTDOWN:
             self._update_countdown(dt)
         elif self.state == GameState.PLAYING:
             self._update_playing(dt)
-        elif self.state == GameState.GAME_OVER:
-            self._update_game_over(dt)
 
     def _update_countdown(self, dt: float):
-        """Update countdown state."""
+        """Update countdown."""
         prev_second = int(self.countdown_timer)
         self.countdown_timer -= dt
         new_second = int(self.countdown_timer)
 
-        # Play beep on each second
         if new_second < prev_second and new_second >= 0:
             self._play_sound('beep')
 
         if self.countdown_timer <= 0:
             self.state = GameState.PLAYING
-            self.balloon.reset()
 
     def _update_playing(self, dt: float):
-        """Update main gameplay."""
-        # Update balloon physics
-        self.balloon.update(dt)
+        """Update gameplay."""
+        # Get player hand positions
+        left_hand = None
+        right_hand = None
 
-        # Update score
-        self.scoring.update(dt)
+        if self.cached_players:
+            player = self.cached_players[0]  # Primary player
+            left_hand = player.left_hand
+            right_hand = player.right_hand
 
-        # Handle player collisions (players already detected in _update)
-        if self.camera_ready and self.cached_players:
-            self._handle_player_collisions(self.cached_players, dt)
+        # Update dance manager
+        events = self.dance_manager.update(dt, left_hand, right_hand)
 
-        # Check for game over
-        if self.balloon.is_popped:
-            self._play_sound('pop')
-            self.new_high_score = self.scoring.end_game()
-            self.state = GameState.GAME_OVER
-            self.game_over_timer = 0.0
-
-    def _handle_player_collisions(self, players: List[PlayerLandmarks], dt: float):
-        """Handle collisions between players and balloon."""
-        collision_radius = self.avatar_renderer.get_collision_radius()
-
-        for i, player in enumerate(players):
-            # Get all collision points from player
-            collision_points = player.get_collision_points()
-
-            for point in collision_points:
-                if point is None:
-                    continue
-
-                # Check collision
-                if self.balloon.check_collision(point, collision_radius):
-                    # Calculate hand velocity for better hit response
-                    point_key = f"p{i}_{point[0]:.0f}_{point[1]:.0f}"
-                    velocity = (0.0, 0.0)
-
-                    if point_key in self.prev_hand_positions:
-                        prev = self.prev_hand_positions[point_key]
-                        velocity = (
-                            (point[0] - prev[0]) / max(dt, 0.001),
-                            (point[1] - prev[1]) / max(dt, 0.001)
-                        )
-
-                    # Apply hit
-                    self.balloon.apply_hit(point, velocity)
-                    self.scoring.record_hit()
-                    self._play_sound('hit')
-
-                    # Update previous position
-                    self.prev_hand_positions[point_key] = point
-
-    def _update_game_over(self, dt: float):
-        """Update game over state."""
-        self.game_over_timer += dt
+        # Handle events
+        if events['hit']:
+            self._play_sound('hit')
+        if events['miss']:
+            self._play_sound('miss')
+        if events['sequence_complete']:
+            self._play_sound('success')
+            self.state = GameState.RESULTS
 
     def _render(self):
         """Render the game."""
-        # Draw background
-        self.screen.blit(self.assets['background'], (0, 0))
-
-        # Draw sun
-        self.screen.blit(self.assets['sun'], (self.width - 150, 20))
-
-        # Draw clouds
-        for cloud in self.clouds:
-            self.screen.blit(self.assets[cloud['asset']],
-                           (int(cloud['x']), cloud['y']))
+        # Draw disco background
+        self._draw_disco_background()
 
         # State-specific rendering
-        if self.state == GameState.TITLE:
-            self._render_title()
+        if self.state == GameState.MENU:
+            self._render_menu()
+        elif self.state == GameState.DANCE_SELECT:
+            self._render_dance_select()
         elif self.state == GameState.COUNTDOWN:
             self._render_countdown()
-            self._render_players()
         elif self.state == GameState.PLAYING:
-            self._render_gameplay()
-        elif self.state == GameState.GAME_OVER:
-            self._render_game_over()
+            self._render_playing()
+        elif self.state == GameState.RESULTS:
+            self._render_results()
         elif self.state == GameState.PAUSED:
-            self._render_gameplay()
+            self._render_playing()
             self._render_pause_overlay()
 
-    def _render_title(self):
-        """Render title screen."""
-        # Title
-        title_text = self.font_large.render("KeepyUppy!", True, Palette.DEEP_BLUE)
-        title_shadow = self.font_large.render("KeepyUppy!", True, Palette.NAVY)
-        title_rect = title_text.get_rect(center=(self.width // 2, self.height // 3))
+    def _draw_disco_background(self):
+        """Draw animated disco background."""
+        # Gradient background
+        for y in range(self.height):
+            ratio = y / self.height
+            r = int(DancePalette.BG_GRADIENT_TOP[0] * (1 - ratio) +
+                   DancePalette.BG_GRADIENT_BOTTOM[0] * ratio)
+            g = int(DancePalette.BG_GRADIENT_TOP[1] * (1 - ratio) +
+                   DancePalette.BG_GRADIENT_BOTTOM[1] * ratio)
+            b = int(DancePalette.BG_GRADIENT_TOP[2] * (1 - ratio) +
+                   DancePalette.BG_GRADIENT_BOTTOM[2] * ratio)
+            pygame.draw.line(self.screen, (r, g, b), (0, y), (self.width, y))
 
-        self.screen.blit(title_shadow, (title_rect.x + 4, title_rect.y + 4))
-        self.screen.blit(title_text, title_rect)
+        # Disco stars
+        for star in self.stars:
+            brightness = int(star['brightness'] * 200 + 55)
+            color = (brightness, brightness, brightness)
+            pygame.draw.circle(self.screen, color,
+                             (star['x'], star['y']), star['size'])
+
+        # Disco floor lines
+        floor_y = self.height - 100
+        for i in range(20):
+            x = (i * 100 + int(self.disco_time * 50)) % (self.width + 200) - 100
+            alpha = 100 + int(math.sin(i + self.disco_time) * 50)
+            color = (alpha, alpha // 2, alpha)
+            pygame.draw.line(self.screen, color, (x, floor_y), (x + 50, self.height), 3)
+
+    def _render_menu(self):
+        """Render main menu."""
+        # Title
+        title = self.font_large.render("DanceMode!", True, DancePalette.PINK)
+        title_glow = self.font_large.render("DanceMode!", True, DancePalette.CYAN)
+        title_rect = title.get_rect(center=(self.width // 2, self.height // 3))
+
+        # Glow effect
+        self.screen.blit(title_glow, (title_rect.x + 3, title_rect.y + 3))
+        self.screen.blit(title, title_rect)
 
         # Subtitle
-        subtitle = self.font_medium.render("Keep the Balloon in the Air!", True,
-                                          Palette.ORANGE)
-        subtitle_rect = subtitle.get_rect(center=(self.width // 2,
-                                                  self.height // 3 + 70))
-        self.screen.blit(subtitle, subtitle_rect)
+        subtitle = self.font_medium.render("Follow the dance moves!", True, DancePalette.WHITE)
+        sub_rect = subtitle.get_rect(center=(self.width // 2, self.height // 3 + 60))
+        self.screen.blit(subtitle, sub_rect)
 
-        # Instructions
+        # Camera status
         if self.camera_ready:
-            instr_text = "Wave your hands to hit the balloon!"
+            status_text = f"Camera ready! {len(self.cached_players)} player(s) detected"
+            status_color = DancePalette.GREEN
         else:
-            instr_text = "Camera not detected - Demo mode"
+            status_text = "No camera detected"
+            status_color = DancePalette.ORANGE
 
-        instr = self.font_small.render(instr_text, True, Palette.BLACK)
-        instr_rect = instr.get_rect(center=(self.width // 2, self.height // 2 + 50))
-        self.screen.blit(instr, instr_rect)
+        status = self.font_small.render(status_text, True, status_color)
+        status_rect = status.get_rect(center=(self.width // 2, self.height // 2 + 20))
+        self.screen.blit(status, status_rect)
 
         # Start prompt
-        start_text = "Press SPACE to Start"
-        # Pulsing effect
-        pulse = abs(math.sin(pygame.time.get_ticks() / 500)) * 0.3 + 0.7
-        start_color = tuple(int(c * pulse) for c in Palette.DEEP_BLUE)
-        start = self.font_medium.render(start_text, True, start_color)
-        start_rect = start.get_rect(center=(self.width // 2, self.height * 2 // 3))
-        self.screen.blit(start, start_rect)
+        pulse = abs(math.sin(self.disco_time * 3)) * 0.3 + 0.7
+        prompt_color = tuple(int(c * pulse) for c in DancePalette.YELLOW)
+        prompt = self.font_medium.render("Press SPACE to Start", True, prompt_color)
+        prompt_rect = prompt.get_rect(center=(self.width // 2, self.height * 2 // 3))
+        self.screen.blit(prompt, prompt_rect)
 
-        # High score
-        high_score = self.scoring.get_high_score_formatted()
-        hs_text = self.font_small.render(f"Best Time: {high_score}", True,
-                                        Palette.WARM_YELLOW)
-        hs_rect = hs_text.get_rect(center=(self.width // 2, self.height - 80))
-        self.screen.blit(hs_text, hs_rect)
+        # Render dancers if detected
+        for i, player in enumerate(self.cached_players[:4]):
+            self.dancer_avatar.render_player(self.screen, player, i)
 
-        # Draw decorative balloon
-        balloon_x = self.width // 2 - 50 + math.sin(pygame.time.get_ticks() / 1000) * 30
-        balloon_y = self.height // 2 - 100 + math.cos(pygame.time.get_ticks() / 800) * 20
-        self.screen.blit(self.assets['balloon'], (int(balloon_x), int(balloon_y)))
+    def _render_dance_select(self):
+        """Render dance selection screen."""
+        # Title
+        title = self.font_large.render("Choose Your Dance!", True, DancePalette.CYAN)
+        title_rect = title.get_rect(center=(self.width // 2, 80))
+        self.screen.blit(title, title_rect)
+
+        # Dance options
+        for i, dance in enumerate(self.available_dances):
+            y_pos = 180 + i * 80
+
+            if i == self.selected_dance_index:
+                # Selected dance
+                color = DancePalette.YELLOW
+                pygame.draw.rect(self.screen, DancePalette.PINK,
+                               (self.width // 4, y_pos - 30, self.width // 2, 60),
+                               border_radius=10)
+                prefix = "> "
+            else:
+                color = DancePalette.WHITE
+                prefix = "  "
+
+            dance_text = f"{prefix}{dance.name}"
+            diff_stars = "*" * dance.difficulty
+            full_text = f"{dance_text}  {diff_stars}"
+
+            text = self.font_medium.render(full_text, True, color)
+            text_rect = text.get_rect(center=(self.width // 2, y_pos))
+            self.screen.blit(text, text_rect)
+
+        # Instructions
+        instr = self.font_small.render("LEFT/RIGHT to select, SPACE to start", True, DancePalette.WHITE)
+        instr_rect = instr.get_rect(center=(self.width // 2, self.height - 50))
+        self.screen.blit(instr, instr_rect)
+
+        # Render dancers
+        for i, player in enumerate(self.cached_players[:4]):
+            self.dancer_avatar.render_player(self.screen, player, i)
 
     def _render_countdown(self):
-        """Render countdown overlay."""
-        # Semi-transparent overlay
-        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        overlay.fill((255, 255, 255, 100))
-        self.screen.blit(overlay, (0, 0))
+        """Render countdown."""
+        # Render dancers
+        for i, player in enumerate(self.cached_players[:4]):
+            self.dancer_avatar.render_player(self.screen, player, i)
 
         # Countdown number
         count = max(1, int(self.countdown_timer) + 1)
         if self.countdown_timer <= 0:
             count_text = "GO!"
-            color = Palette.GRASS_GREEN
+            color = DancePalette.GREEN
         else:
             count_text = str(count)
-            color = Palette.ORANGE
+            color = DancePalette.YELLOW
 
-        # Scaling effect
-        scale = 1.0 + (self.countdown_timer % 1.0) * 0.3
+        # Scale effect
+        scale = 1.0 + (self.countdown_timer % 1.0) * 0.5
         font_size = int(120 * scale)
-        try:
-            countdown_font = create_game_font(font_size)
-        except:
-            countdown_font = self.font_large
+        countdown_font = pygame.font.Font(None, font_size)
 
         text = countdown_font.render(count_text, True, color)
-        shadow = countdown_font.render(count_text, True, Palette.NAVY)
-        rect = text.get_rect(center=(self.width // 2, self.height // 2))
+        text_rect = text.get_rect(center=(self.width // 2, self.height // 2))
 
-        self.screen.blit(shadow, (rect.x + 4, rect.y + 4))
-        self.screen.blit(text, rect)
+        # Glow
+        glow = countdown_font.render(count_text, True, DancePalette.WHITE)
+        self.screen.blit(glow, (text_rect.x + 4, text_rect.y + 4))
+        self.screen.blit(text, text_rect)
 
-    def _render_players(self):
-        """Render detected players."""
-        if not self.camera_ready:
-            return
+        # Dance name
+        dance = self.available_dances[self.selected_dance_index]
+        name = self.font_medium.render(f"Get ready for: {dance.name}!", True, DancePalette.PINK)
+        name_rect = name.get_rect(center=(self.width // 2, self.height // 3))
+        self.screen.blit(name, name_rect)
 
-        players = self.player_detector.detect_players(self.width, self.height)
-        for i, player in enumerate(players):
-            self.avatar_renderer.render_player(self.screen, player, i)
+    def _render_playing(self):
+        """Render gameplay."""
+        # Render dancers
+        for i, player in enumerate(self.cached_players[:4]):
+            self.dancer_avatar.render_player(self.screen, player, i)
 
-    def _render_gameplay(self):
-        """Render main gameplay."""
-        # Render players first (behind balloon)
-        self._render_players()
+        # Render targets
+        left_target, right_target = self.dance_manager.get_target_positions()
+        time_progress = self.dance_manager.get_time_progress()
 
-        # Render balloon
-        balloon_info = self.balloon.get_render_info()
-        if not balloon_info['is_popped']:
-            balloon_surf = self.assets['balloon']
-            # Apply wobble rotation
-            wobble = balloon_info['wobble']
-            rotated = pygame.transform.rotate(balloon_surf, wobble)
-            rect = rotated.get_rect(center=(int(balloon_info['x']),
-                                           int(balloon_info['y'])))
-            self.screen.blit(rotated, rect)
+        self.target_renderer.render_targets(
+            self.screen, left_target, right_target,
+            self.dance_manager.left_hand_hit,
+            self.dance_manager.right_hand_hit,
+            time_progress
+        )
 
-        # Render wind indicator if active
-        wind_info = self.balloon.get_wind_indicator()
-        if wind_info:
-            self._render_wind_indicator(wind_info)
+        # Draw countdown rings around targets
+        time_remaining = self.dance_manager.get_time_remaining()
+        if left_target:
+            self.target_renderer.render_countdown_ring(
+                self.screen, left_target, time_remaining, 2.0)
+        if right_target:
+            self.target_renderer.render_countdown_ring(
+                self.screen, right_target, time_remaining, 2.0)
 
-        # Render score UI
-        self._render_score_ui()
+        # Current move instruction
+        move = self.dance_manager.get_current_move()
+        if move:
+            instr = self.font_medium.render(move.description, True, DancePalette.WHITE)
+            instr_rect = instr.get_rect(center=(self.width // 2, 50))
+            self.screen.blit(instr, instr_rect)
 
-    def _render_wind_indicator(self, wind_info: Tuple[float, float, float]):
-        """Render wind direction indicator."""
-        direction, strength, remaining = wind_info
+        # Score and stats
+        stats = self.dance_manager.get_stats()
 
-        # Position in top-left area
-        indicator_x = 100
-        indicator_y = 100
+        score_text = f"Score: {stats['score']}"
+        score = self.font_medium.render(score_text, True, DancePalette.GOLD)
+        self.screen.blit(score, (20, 20))
 
-        # Rotate wind arrow
-        angle_degrees = -math.degrees(direction)
-        rotated_arrow = pygame.transform.rotate(self.assets['wind_arrow'],
-                                               angle_degrees)
-        rect = rotated_arrow.get_rect(center=(indicator_x, indicator_y))
+        streak_text = f"Streak: {stats['current_streak']}"
+        streak_color = DancePalette.PINK if stats['current_streak'] >= 3 else DancePalette.WHITE
+        streak = self.font_small.render(streak_text, True, streak_color)
+        self.screen.blit(streak, (20, 70))
 
-        # Fade based on remaining time
-        alpha = int(255 * remaining)
-        rotated_arrow.set_alpha(alpha)
+        dance_name = self.font_small.render(stats['dance_name'], True, DancePalette.CYAN)
+        self.screen.blit(dance_name, (self.width - 200, 20))
 
-        self.screen.blit(rotated_arrow, rect)
-
-        # Wind text
-        wind_text = self.font_small.render("WIND!", True, Palette.DEEP_BLUE)
-        wind_text.set_alpha(alpha)
-        text_rect = wind_text.get_rect(center=(indicator_x, indicator_y + 50))
-        self.screen.blit(wind_text, text_rect)
-
-    def _render_score_ui(self):
-        """Render score display."""
-        # Current score (large, top-center)
-        score_text = self.scoring.get_current_score_formatted()
-        score_surf = self.font_large.render(score_text, True, Palette.WHITE)
-        score_shadow = self.font_large.render(score_text, True, Palette.NAVY)
-        score_rect = score_surf.get_rect(center=(self.width // 2, 50))
-
-        self.screen.blit(score_shadow, (score_rect.x + 3, score_rect.y + 3))
-        self.screen.blit(score_surf, score_rect)
-
-        # High score (smaller, top-right)
-        hs_text = f"BEST: {self.scoring.get_high_score_formatted()}"
-        hs_surf = self.font_small.render(hs_text, True, Palette.WARM_YELLOW)
-        hs_rect = hs_surf.get_rect(topright=(self.width - 20, 20))
-        self.screen.blit(hs_surf, hs_rect)
-
-        # Hit counter (top-left)
-        hits = self.scoring.get_current_hits()
-        hits_text = f"Hits: {hits}"
-        hits_surf = self.font_small.render(hits_text, True, Palette.SKY_BLUE)
-        self.screen.blit(hits_surf, (20, 20))
-
-    def _render_game_over(self):
-        """Render game over screen."""
-        # Keep the last gameplay state visible
-        self._render_players()
-
-        # Show popped balloon
-        popped_surf = self.assets['balloon_popped']
-        balloon_pos = self.balloon.get_position()
-        rect = popped_surf.get_rect(center=(int(balloon_pos[0]),
-                                           int(balloon_pos[1])))
-        self.screen.blit(popped_surf, rect)
-
-        # Dark overlay
-        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 150))
-        self.screen.blit(overlay, (0, 0))
-
-        # Game Over text
-        go_text = self.font_large.render("Game Over!", True, Palette.CORAL)
-        go_shadow = self.font_large.render("Game Over!", True, Palette.NAVY)
-        go_rect = go_text.get_rect(center=(self.width // 2, self.height // 3))
-
-        self.screen.blit(go_shadow, (go_rect.x + 4, go_rect.y + 4))
-        self.screen.blit(go_text, go_rect)
-
-        # Final score
-        final_score = self.scoring.get_current_score_formatted()
-        score_label = self.font_medium.render("Time:", True, Palette.WHITE)
-        score_value = self.font_large.render(final_score, True, Palette.WARM_YELLOW)
-
-        label_rect = score_label.get_rect(center=(self.width // 2,
-                                                  self.height // 2 - 20))
-        value_rect = score_value.get_rect(center=(self.width // 2,
-                                                  self.height // 2 + 40))
-
-        self.screen.blit(score_label, label_rect)
-        self.screen.blit(score_value, value_rect)
-
-        # New high score celebration
-        if self.new_high_score:
-            # Pulsing effect
-            pulse = abs(math.sin(pygame.time.get_ticks() / 200))
-            hs_color = (
-                int(255 * pulse + Palette.WARM_YELLOW[0] * (1 - pulse)),
-                int(200 * pulse + Palette.WARM_YELLOW[1] * (1 - pulse)),
-                int(0 * pulse + Palette.WARM_YELLOW[2] * (1 - pulse)),
-            )
-            new_hs = self.font_medium.render("NEW BEST TIME!", True, hs_color)
-            new_hs_rect = new_hs.get_rect(center=(self.width // 2,
-                                                  self.height // 2 + 100))
-            self.screen.blit(new_hs, new_hs_rect)
-
-        # Play again prompt
-        if self.game_over_timer > 1.0:
-            again_text = "Press SPACE to Play Again"
-            pulse = abs(math.sin(pygame.time.get_ticks() / 500)) * 0.3 + 0.7
-            again_color = tuple(int(c * pulse) for c in Palette.WHITE)
-            again = self.font_small.render(again_text, True, again_color)
-            again_rect = again.get_rect(center=(self.width // 2,
-                                               self.height * 3 // 4))
-            self.screen.blit(again, again_rect)
-
-    def _render_pause_overlay(self):
-        """Render pause screen overlay."""
-        # Dark overlay
+    def _render_results(self):
+        """Render results screen."""
+        # Overlay
         overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         self.screen.blit(overlay, (0, 0))
 
-        # Paused text
-        pause_text = self.font_large.render("PAUSED", True, Palette.WHITE)
+        stats = self.dance_manager.get_stats()
+
+        # Title
+        title = self.font_large.render("Dance Complete!", True, DancePalette.PINK)
+        title_rect = title.get_rect(center=(self.width // 2, self.height // 4))
+        self.screen.blit(title, title_rect)
+
+        # Score
+        score_text = f"Final Score: {stats['score']}"
+        score = self.font_large.render(score_text, True, DancePalette.GOLD)
+        score_rect = score.get_rect(center=(self.width // 2, self.height // 2 - 40))
+        self.screen.blit(score, score_rect)
+
+        # Stats
+        stats_lines = [
+            f"Moves Hit: {stats['moves_hit']}",
+            f"Moves Missed: {stats['moves_missed']}",
+            f"Accuracy: {stats['accuracy']:.0f}%",
+            f"Best Streak: {stats['best_streak']}",
+        ]
+
+        for i, line in enumerate(stats_lines):
+            text = self.font_small.render(line, True, DancePalette.WHITE)
+            text_rect = text.get_rect(center=(self.width // 2, self.height // 2 + 40 + i * 35))
+            self.screen.blit(text, text_rect)
+
+        # Rating
+        accuracy = stats['accuracy']
+        if accuracy >= 90:
+            rating = "SUPERSTAR!"
+            rating_color = DancePalette.GOLD
+        elif accuracy >= 70:
+            rating = "Great Moves!"
+            rating_color = DancePalette.PINK
+        elif accuracy >= 50:
+            rating = "Good Try!"
+            rating_color = DancePalette.CYAN
+        else:
+            rating = "Keep Practicing!"
+            rating_color = DancePalette.WHITE
+
+        rating_text = self.font_large.render(rating, True, rating_color)
+        rating_rect = rating_text.get_rect(center=(self.width // 2, self.height * 3 // 4))
+        self.screen.blit(rating_text, rating_rect)
+
+        # Continue prompt
+        prompt = self.font_small.render("Press SPACE for menu, R to replay", True, DancePalette.WHITE)
+        prompt_rect = prompt.get_rect(center=(self.width // 2, self.height - 50))
+        self.screen.blit(prompt, prompt_rect)
+
+    def _render_pause_overlay(self):
+        """Render pause overlay."""
+        overlay = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        self.screen.blit(overlay, (0, 0))
+
+        pause_text = self.font_large.render("PAUSED", True, DancePalette.WHITE)
         pause_rect = pause_text.get_rect(center=(self.width // 2, self.height // 2))
         self.screen.blit(pause_text, pause_rect)
 
-        # Instructions
-        resume_text = self.font_small.render("Press SPACE or ESC to Resume",
-                                            True, Palette.PALE_BLUE)
-        resume_rect = resume_text.get_rect(center=(self.width // 2,
-                                                   self.height // 2 + 60))
-        self.screen.blit(resume_text, resume_rect)
+        resume = self.font_small.render("Press SPACE or ESC to Resume", True, DancePalette.CYAN)
+        resume_rect = resume.get_rect(center=(self.width // 2, self.height // 2 + 60))
+        self.screen.blit(resume, resume_rect)
 
     def _show_camera_preview(self):
-        """Show camera feed in a separate window with detected skeleton."""
+        """Show camera preview window."""
         if not self.show_camera or not self.camera_ready:
             return
 
@@ -605,21 +615,18 @@ class KeepyUppyGame:
             display_frame = frame.copy()
             h, w = display_frame.shape[:2]
 
-            # Use cached players - scale from game coords to camera coords
             players = self.cached_players
             scale_x = w / self.width
             scale_y = h / self.height
 
-            # Colors for different players (BGR format)
             player_colors = [
-                (255, 150, 0),    # Bluey - light blue
-                (0, 165, 255),    # Bingo - orange
-                (200, 100, 50),   # Bandit - blue-grey
-                (100, 130, 255),  # Chilli - salmon
+                (255, 100, 150),
+                (100, 200, 255),
+                (150, 255, 100),
+                (255, 200, 100),
             ]
 
             def scale_pt(pt):
-                """Scale game coordinates to camera coordinates."""
                 if pt is None:
                     return None
                 return (int(pt[0] * scale_x), int(pt[1] * scale_y))
@@ -627,7 +634,6 @@ class KeepyUppyGame:
             for i, player in enumerate(players):
                 color = player_colors[i % len(player_colors)]
 
-                # Draw skeleton connections (upper body only)
                 connections = [
                     ('left_shoulder', 'right_shoulder'),
                     ('left_shoulder', 'left_elbow'),
@@ -645,61 +651,32 @@ class KeepyUppyGame:
                     if start_pt and end_pt:
                         cv2.line(display_frame, start_pt, end_pt, color, 3)
 
-                # Draw joint points (upper body only)
                 joints = ['nose', 'left_shoulder', 'right_shoulder', 'left_elbow',
                          'right_elbow', 'left_hand', 'right_hand', 'left_hip', 'right_hip']
 
                 for joint_name in joints:
                     pt = scale_pt(getattr(player, joint_name, None))
                     if pt:
-                        # Larger circles for hands (collision points)
-                        radius = 12 if 'hand' in joint_name else 6
+                        radius = 15 if 'hand' in joint_name else 6
                         cv2.circle(display_frame, pt, radius, color, -1)
                         cv2.circle(display_frame, pt, radius, (255, 255, 255), 2)
 
-                # Label the player
-                nose_pt = scale_pt(player.nose)
-                if nose_pt:
-                    label = ['Bluey', 'Bingo', 'Bandit', 'Chilli'][i % 4]
-                    cv2.putText(display_frame, label,
-                               (nose_pt[0] - 30, nose_pt[1] - 30),
-                               cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-
-            # Add text overlay
-            num_players = len(players)
-            status = f"Detected: {num_players} player{'s' if num_players != 1 else ''}"
-            cv2.putText(display_frame, status,
+            # Status
+            cv2.putText(display_frame, f"DanceMode - {len(players)} player(s)",
                        (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
-            cv2.putText(display_frame, "Press 'Q' to hide | +/- to adjust detection area",
-                       (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
-            # Draw detection region boundary
             bounds = self.player_detector.get_detection_bounds(w, h)
             cv2.rectangle(display_frame,
                          (bounds[0], bounds[1]),
                          (bounds[0] + bounds[2], bounds[1] + bounds[3]),
                          (0, 255, 0), 2)
-            cv2.putText(display_frame, "Detection Zone",
-                       (bounds[0] + 5, bounds[1] + 20),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
-            cv2.imshow("KeepyUppy - Camera", display_frame)
+            cv2.imshow("DanceMode - Camera", display_frame)
 
-            # Check for camera window key presses
             key = cv2.waitKey(1) & 0xFF
             if key == ord('q'):
                 self.show_camera = False
-                cv2.destroyWindow("KeepyUppy - Camera")
-            elif key == ord('+') or key == ord('='):
-                # Increase margin (smaller detection area)
-                new_margin = self.player_detector.detection_margin + 0.05
-                self.player_detector.set_detection_margin(new_margin)
-                print(f"Detection margin: {self.player_detector.detection_margin:.0%}")
-            elif key == ord('-') or key == ord('_'):
-                # Decrease margin (larger detection area)
-                new_margin = self.player_detector.detection_margin - 0.05
-                self.player_detector.set_detection_margin(new_margin)
-                print(f"Detection margin: {self.player_detector.detection_margin:.0%}")
+                cv2.destroyWindow("DanceMode - Camera")
 
     def _cleanup(self):
         """Clean up resources."""
@@ -713,7 +690,7 @@ def main():
     """Entry point for the game."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="KeepyUppy - Balloon Game")
+    parser = argparse.ArgumentParser(description="DanceMode - Interactive Dance Game")
     parser.add_argument('--width', type=int, default=1280,
                        help='Screen width (default: 1280)')
     parser.add_argument('--height', type=int, default=720,
@@ -725,7 +702,7 @@ def main():
 
     args = parser.parse_args()
 
-    game = KeepyUppyGame(
+    game = DanceModeGame(
         width=args.width,
         height=args.height,
         fullscreen=args.fullscreen,

@@ -1,5 +1,5 @@
 #!/bin/bash
-# KeepyUppy Launcher Script
+# DanceMode Launcher Script
 # Run this script to start the game
 
 # Colors for terminal output
@@ -7,17 +7,15 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}"
-echo "  _  __                       _   _                   _ "
-echo " | |/ /                      | | | |                 | |"
-echo " | ' / ___  ___ _ __  _   _  | | | |_ __  _ __  _   _| |"
-echo " |  < / _ \/ _ \ '_ \| | | | | | | | '_ \| '_ \| | | | |"
-echo " | . \  __/  __/ |_) | |_| | | |_| | |_) | |_) | |_| |_|"
-echo " |_|\_\___|\___| .__/ \__, |  \___/| .__/| .__/ \__, (_)"
-echo "               | |     __/ |       | |   | |     __/ |  "
-echo "               |_|    |___/        |_|   |_|    |___/   "
+echo -e "${MAGENTA}"
+echo "  ____                        __  __           _      _ "
+echo " |  _ \  __ _ _ __   ___ ___|  \/  | ___   __| | ___| |"
+echo " | | | |/ _\` | '_ \ / __/ _ \ |\/| |/ _ \ / _\` |/ _ \ |"
+echo " | |_| | (_| | | | | (_|  __/ |  | | (_) | (_| |  __/_|"
+echo " |____/ \__,_|_| |_|\___\___|_|  |_|\___/ \__,_|\___(_)"
 echo -e "${NC}"
 echo ""
 
@@ -61,8 +59,8 @@ fi
 
 echo -e "${GREEN}All dependencies installed!${NC}"
 echo ""
-echo -e "${BLUE}Starting KeepyUppy...${NC}"
-echo -e "${YELLOW}Tip: Press SPACE to start, ESC to pause/quit${NC}"
+echo -e "${MAGENTA}Starting DanceMode...${NC}"
+echo -e "${YELLOW}Tip: SPACE to start, LEFT/RIGHT to select dance, ESC to quit${NC}"
 echo ""
 
 # Run the game
