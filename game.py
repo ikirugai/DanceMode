@@ -12,8 +12,8 @@ from typing import List, Optional, Tuple
 from enum import Enum
 
 from player_detection import PlayerDetector, PlayerLandmarks
-from dance_targets import DanceTargetManager, DanceLibrary
-from dancer_avatar import DancerAvatar, TargetRenderer, DancerColors
+from dance_targets import DanceTargetManager, DanceLibrary, DanceSequence, DanceMove
+from dancer_avatar import DancerAvatar, TargetRenderer, DancerColors, ParticleSystem
 
 
 # Fun color palette for DanceMode
@@ -93,7 +93,11 @@ class DanceModeGame:
         self.state = GameState.MENU
         self.countdown_timer = 3.0
         self.selected_dance_index = 0
+        # Add Free Play as a special "dance" option
         self.available_dances = DanceLibrary.get_all_sequences()
+        # Add Free Play as the last option (will be handled specially)
+        free_play = DanceSequence("Free Play (Christmas!)", [], tempo_bpm=120, difficulty=0)
+        self.available_dances.append(free_play)
 
         # Camera
         self.camera_ready = False
@@ -104,6 +108,13 @@ class DanceModeGame:
         self.bg_hue = 0
         self.stars = self._create_stars(50)
         self.disco_time = 0
+        self.particle_system = ParticleSystem()
+
+        # Free Play mode
+        self.free_play_mode = False
+        self.free_play_target = None  # Current bubble position
+        self.free_play_timer = 0.0
+        self.free_play_score = 0
 
         # Sounds
         self._init_sounds()
@@ -269,12 +280,12 @@ class DanceModeGame:
             elif self.state == GameState.PAUSED:
                 self.state = GameState.PLAYING
 
-        elif key == pygame.K_LEFT:
+        elif key == pygame.K_UP or key == pygame.K_LEFT:
             if self.state == GameState.DANCE_SELECT:
                 self.selected_dance_index = (self.selected_dance_index - 1) % len(self.available_dances)
                 self._play_sound('beep')
 
-        elif key == pygame.K_RIGHT:
+        elif key == pygame.K_DOWN or key == pygame.K_RIGHT:
             if self.state == GameState.DANCE_SELECT:
                 self.selected_dance_index = (self.selected_dance_index + 1) % len(self.available_dances)
                 self._play_sound('beep')
@@ -290,7 +301,18 @@ class DanceModeGame:
         self.state = GameState.COUNTDOWN
         self.countdown_timer = 3.0
         selected_dance = self.available_dances[self.selected_dance_index]
-        self.dance_manager.start_sequence(selected_dance)
+
+        # Check if Free Play mode (last option, no moves)
+        if len(selected_dance.moves) == 0:
+            self.free_play_mode = True
+            self.free_play_target = None
+            self.free_play_score = 0
+            self.particle_system.enable_snowflakes(True)  # Christmas snowflakes!
+        else:
+            self.free_play_mode = False
+            self.particle_system.enable_snowflakes(False)
+            self.dance_manager.start_sequence(selected_dance)
+
         self._play_sound('beep')
 
     def _update(self, dt: float):
@@ -323,6 +345,14 @@ class DanceModeGame:
 
     def _update_playing(self, dt: float):
         """Update gameplay."""
+        # Update particle system
+        self.particle_system.update(dt, self.width)
+
+        # Free Play mode handling
+        if self.free_play_mode:
+            self._update_free_play(dt)
+            return
+
         # Get player hand positions
         left_hand = None
         right_hand = None
@@ -336,13 +366,72 @@ class DanceModeGame:
         events = self.dance_manager.update(dt, left_hand, right_hand)
 
         # Handle events
-        if events['hit']:
+        if events['pop']:
+            # Spawn confetti at hit target position
+            left_target, right_target = self.dance_manager.get_target_positions()
+            if self.dance_manager.left_hand_hit and left_target:
+                self.particle_system.spawn_confetti(left_target[0], left_target[1], 25)
+            if self.dance_manager.right_hand_hit and right_target:
+                self.particle_system.spawn_confetti(right_target[0], right_target[1], 25)
             self._play_sound('hit')
+
+        if events['hit']:
+            # Extra confetti burst for completing the move
+            left_target, right_target = self.dance_manager.get_target_positions()
+            if left_target:
+                self.particle_system.spawn_confetti(left_target[0], left_target[1], 40)
+            if right_target:
+                self.particle_system.spawn_confetti(right_target[0], right_target[1], 40)
+
         if events['miss']:
             self._play_sound('miss')
         if events['sequence_complete']:
             self._play_sound('success')
             self.state = GameState.RESULTS
+
+    def _update_free_play(self, dt: float):
+        """Update Free Play mode with random bubbles."""
+        # Get player hand positions
+        left_hand = None
+        right_hand = None
+
+        if self.cached_players:
+            player = self.cached_players[0]
+            left_hand = player.left_hand
+            right_hand = player.right_hand
+
+        # Spawn new target if none exists
+        if self.free_play_target is None:
+            margin = 100
+            self.free_play_target = (
+                random.randint(margin, self.width - margin),
+                random.randint(margin, self.height - margin)
+            )
+            self.free_play_timer = 0.0
+
+        self.free_play_timer += dt
+
+        # Check if hand hits target
+        hit_radius = 80
+        target = self.free_play_target
+
+        def check_hit(hand):
+            if hand is None:
+                return False
+            dx = hand[0] - target[0]
+            dy = hand[1] - target[1]
+            return (dx * dx + dy * dy) <= hit_radius * hit_radius
+
+        if check_hit(left_hand) or check_hit(right_hand):
+            # POP! Spawn confetti and snowflakes
+            self.particle_system.spawn_confetti(target[0], target[1], 50)
+            self._play_sound('hit')
+            self.free_play_score += 1
+            self.free_play_target = None  # Will spawn new target next frame
+
+        # Timeout - spawn new target after 5 seconds
+        elif self.free_play_timer >= 5.0:
+            self.free_play_target = None
 
     def _render(self):
         """Render the game."""
@@ -440,29 +529,42 @@ class DanceModeGame:
 
         # Dance options
         for i, dance in enumerate(self.available_dances):
-            y_pos = 180 + i * 80
+            y_pos = 180 + i * 70
+
+            is_free_play = len(dance.moves) == 0
 
             if i == self.selected_dance_index:
                 # Selected dance
                 color = DancePalette.YELLOW
-                pygame.draw.rect(self.screen, DancePalette.PINK,
-                               (self.width // 4, y_pos - 30, self.width // 2, 60),
-                               border_radius=10)
+                # Different highlight for Free Play
+                if is_free_play:
+                    pygame.draw.rect(self.screen, (50, 150, 50),  # Green for Christmas
+                                   (self.width // 4, y_pos - 25, self.width // 2, 50),
+                                   border_radius=10)
+                else:
+                    pygame.draw.rect(self.screen, DancePalette.PINK,
+                                   (self.width // 4, y_pos - 25, self.width // 2, 50),
+                                   border_radius=10)
                 prefix = "> "
             else:
                 color = DancePalette.WHITE
                 prefix = "  "
 
-            dance_text = f"{prefix}{dance.name}"
-            diff_stars = "*" * dance.difficulty
-            full_text = f"{dance_text}  {diff_stars}"
+            if is_free_play:
+                # Special display for Free Play
+                full_text = f"{prefix}{dance.name}"
+                text = self.font_medium.render(full_text, True, color)
+            else:
+                dance_text = f"{prefix}{dance.name}"
+                diff_stars = "*" * dance.difficulty
+                full_text = f"{dance_text}  {diff_stars}"
+                text = self.font_medium.render(full_text, True, color)
 
-            text = self.font_medium.render(full_text, True, color)
             text_rect = text.get_rect(center=(self.width // 2, y_pos))
             self.screen.blit(text, text_rect)
 
         # Instructions
-        instr = self.font_small.render("LEFT/RIGHT to select, SPACE to start", True, DancePalette.WHITE)
+        instr = self.font_small.render("UP/DOWN to select, SPACE to start", True, DancePalette.WHITE)
         instr_rect = instr.get_rect(center=(self.width // 2, self.height - 50))
         self.screen.blit(instr, instr_rect)
 
@@ -500,9 +602,15 @@ class DanceModeGame:
 
         # Dance name
         dance = self.available_dances[self.selected_dance_index]
-        name = self.font_medium.render(f"Get ready for: {dance.name}!", True, DancePalette.PINK)
+        if self.free_play_mode:
+            name = self.font_medium.render("Get ready to POP baubles!", True, DancePalette.PINK)
+        else:
+            name = self.font_medium.render(f"Get ready for: {dance.name}!", True, DancePalette.PINK)
         name_rect = name.get_rect(center=(self.width // 2, self.height // 3))
         self.screen.blit(name, name_rect)
+
+        # Draw particles (snowflakes) during countdown too
+        self.particle_system.draw(self.screen)
 
     def _render_playing(self):
         """Render gameplay."""
@@ -510,48 +618,100 @@ class DanceModeGame:
         for i, player in enumerate(self.cached_players[:4]):
             self.dancer_avatar.render_player(self.screen, player, i)
 
-        # Render targets
-        left_target, right_target = self.dance_manager.get_target_positions()
-        time_progress = self.dance_manager.get_time_progress()
+        if self.free_play_mode:
+            # Free Play mode rendering
+            self._render_free_play()
+        else:
+            # Normal dance mode rendering
+            # Render targets
+            left_target, right_target = self.dance_manager.get_target_positions()
+            time_progress = self.dance_manager.get_time_progress()
 
-        self.target_renderer.render_targets(
-            self.screen, left_target, right_target,
-            self.dance_manager.left_hand_hit,
-            self.dance_manager.right_hand_hit,
-            time_progress
-        )
+            self.target_renderer.render_targets(
+                self.screen, left_target, right_target,
+                self.dance_manager.left_hand_hit,
+                self.dance_manager.right_hand_hit,
+                time_progress
+            )
 
-        # Draw countdown rings around targets
-        time_remaining = self.dance_manager.get_time_remaining()
-        max_time = self.dance_manager.move_timeout
-        if left_target:
-            self.target_renderer.render_countdown_ring(
-                self.screen, left_target, time_remaining, max_time)
-        if right_target:
-            self.target_renderer.render_countdown_ring(
-                self.screen, right_target, time_remaining, max_time)
+            # Draw countdown rings around targets
+            time_remaining = self.dance_manager.get_time_remaining()
+            max_time = self.dance_manager.move_timeout
+            if left_target:
+                self.target_renderer.render_countdown_ring(
+                    self.screen, left_target, time_remaining, max_time)
+            if right_target:
+                self.target_renderer.render_countdown_ring(
+                    self.screen, right_target, time_remaining, max_time)
 
-        # Current move instruction
-        move = self.dance_manager.get_current_move()
-        if move:
-            instr = self.font_medium.render(move.description, True, DancePalette.WHITE)
-            instr_rect = instr.get_rect(center=(self.width // 2, 50))
-            self.screen.blit(instr, instr_rect)
+            # Current move instruction
+            move = self.dance_manager.get_current_move()
+            if move:
+                instr = self.font_medium.render(move.description, True, DancePalette.WHITE)
+                instr_rect = instr.get_rect(center=(self.width // 2, 50))
+                self.screen.blit(instr, instr_rect)
 
-        # Score and stats
-        stats = self.dance_manager.get_stats()
+            # Score and stats
+            stats = self.dance_manager.get_stats()
 
-        score_text = f"Score: {stats['score']}"
-        score = self.font_medium.render(score_text, True, DancePalette.GOLD)
-        self.screen.blit(score, (20, 20))
+            score_text = f"Score: {stats['score']}"
+            score = self.font_medium.render(score_text, True, DancePalette.GOLD)
+            self.screen.blit(score, (20, 20))
 
-        streak_text = f"Streak: {stats['current_streak']}"
-        streak_color = DancePalette.PINK if stats['current_streak'] >= 3 else DancePalette.WHITE
-        streak = self.font_small.render(streak_text, True, streak_color)
-        self.screen.blit(streak, (20, 70))
+            streak_text = f"Streak: {stats['current_streak']}"
+            streak_color = DancePalette.PINK if stats['current_streak'] >= 3 else DancePalette.WHITE
+            streak = self.font_small.render(streak_text, True, streak_color)
+            self.screen.blit(streak, (20, 70))
 
-        dance_name = self.font_small.render(stats['dance_name'], True, DancePalette.CYAN)
-        self.screen.blit(dance_name, (self.width - 200, 20))
+            dance_name = self.font_small.render(stats['dance_name'], True, DancePalette.CYAN)
+            self.screen.blit(dance_name, (self.width - 200, 20))
+
+        # Draw particles on top of everything
+        self.particle_system.draw(self.screen)
+
+    def _render_free_play(self):
+        """Render Free Play mode bubble and score."""
+        # Draw the bubble target
+        if self.free_play_target:
+            x, y = self.free_play_target
+            pulse = math.sin(self.disco_time * 5) * 0.2 + 1.0
+            radius = int(50 * pulse)
+
+            # Christmas bauble style bubble
+            # Outer glow (red/green alternating)
+            glow_color = (255, 50, 50) if int(self.disco_time * 2) % 2 == 0 else (50, 255, 50)
+            for i in range(4):
+                pygame.draw.circle(self.screen, glow_color, (x, y), radius + 15 + i * 5, 3)
+
+            # Main bubble (gold)
+            pygame.draw.circle(self.screen, (255, 215, 0), (x, y), radius)
+            pygame.draw.circle(self.screen, (255, 240, 150), (x, y), radius - 10)
+
+            # Highlight
+            pygame.draw.circle(self.screen, (255, 255, 255), (x - 15, y - 15), 8)
+
+            # Ornament cap
+            pygame.draw.rect(self.screen, (200, 200, 200), (x - 8, y - radius - 10, 16, 12))
+            pygame.draw.circle(self.screen, (150, 150, 150), (x, y - radius - 15), 6)
+
+            # "POP ME!" text
+            pop_text = self.font_small.render("POP!", True, (180, 50, 50))
+            pop_rect = pop_text.get_rect(center=(x, y))
+            self.screen.blit(pop_text, pop_rect)
+
+        # Free Play title
+        title = self.font_medium.render("FREE PLAY - Pop the Baubles!", True, DancePalette.WHITE)
+        title_rect = title.get_rect(center=(self.width // 2, 40))
+        self.screen.blit(title, title_rect)
+
+        # Score
+        score_text = f"Baubles Popped: {self.free_play_score}"
+        score = self.font_large.render(score_text, True, DancePalette.GOLD)
+        self.screen.blit(score, (20, 80))
+
+        # Christmas message
+        msg = self.font_small.render("Merry Christmas!", True, (255, 100, 100))
+        self.screen.blit(msg, (self.width - 200, 20))
 
     def _render_results(self):
         """Render results screen."""

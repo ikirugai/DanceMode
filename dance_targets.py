@@ -160,10 +160,18 @@ class DanceTargetManager:
         self.move_timer: float = 0.0
         self.move_timeout: float = 5.0  # Seconds to hit the target (kid-friendly)
 
-        # Target hit detection - VERY generous for kids
-        self.hit_radius: float = 250  # Pixels - very large radius for easy hits
+        # Target hit detection
+        self.hit_radius: float = 80  # Pixels - reasonable radius for hitting targets
         self.left_hand_hit: bool = False
         self.right_hand_hit: bool = False
+        self.left_hit_time: float = 0.0  # When left was hit
+        self.right_hit_time: float = 0.0  # When right was hit
+
+        # Timing
+        self.min_display_time: float = 3.0  # Minimum time to show targets
+        self.celebration_time: float = 1.0  # Time to celebrate after both hit
+        self.celebrating: bool = False
+        self.celebration_timer: float = 0.0
 
         # Visual feedback
         self.target_pulse: float = 0.0
@@ -242,9 +250,9 @@ class DanceTargetManager:
         """
         Update the dance target system.
 
-        Returns dict with events: {'hit': bool, 'miss': bool, 'complete': bool}
+        Returns dict with events: {'hit': bool, 'miss': bool, 'complete': bool, 'pop': bool}
         """
-        events = {'hit': False, 'miss': False, 'complete': False, 'sequence_complete': False}
+        events = {'hit': False, 'miss': False, 'complete': False, 'sequence_complete': False, 'pop': False}
 
         if not self.current_sequence:
             return events
@@ -259,6 +267,15 @@ class DanceTargetManager:
         # Update move timer
         self.move_timer += dt
 
+        # If celebrating, wait for celebration to finish
+        if self.celebrating:
+            self.celebration_timer += dt
+            if self.celebration_timer >= self.celebration_time:
+                # Celebration done, advance to next move
+                self._next_move()
+                events['complete'] = True
+            return events
+
         # Get current targets
         left_target, right_target = self.get_target_positions()
 
@@ -266,24 +283,31 @@ class DanceTargetManager:
         if left_target and not self.left_hand_hit:
             if self.check_hand_hit(left_hand, left_target):
                 self.left_hand_hit = True
+                self.left_hit_time = self.move_timer
+                events['pop'] = True  # Trigger pop effect
 
         if right_target and not self.right_hand_hit:
             if self.check_hand_hit(right_hand, right_target):
                 self.right_hand_hit = True
+                self.right_hit_time = self.move_timer
+                events['pop'] = True  # Trigger pop effect
 
         # Check if move is complete (all required targets hit)
         left_done = (left_target is None) or self.left_hand_hit
         right_done = (right_target is None) or self.right_hand_hit
 
-        if left_done and right_done:
-            # Move completed successfully!
+        # Need minimum display time before advancing
+        can_advance = self.move_timer >= self.min_display_time
+
+        if left_done and right_done and can_advance:
+            # Move completed successfully! Start celebration
             events['hit'] = True
             self.moves_completed += 1
             self.current_streak += 1
             self.best_streak = max(self.best_streak, self.current_streak)
             self.success_flash = 1.0
-            self._next_move()
-            events['complete'] = True
+            self.celebrating = True
+            self.celebration_timer = 0.0
 
         elif self.move_timer >= self.move_timeout:
             # Time's up - missed this move
@@ -310,6 +334,10 @@ class DanceTargetManager:
         self.move_timer = 0.0
         self.left_hand_hit = False
         self.right_hand_hit = False
+        self.left_hit_time = 0.0
+        self.right_hit_time = 0.0
+        self.celebrating = False
+        self.celebration_timer = 0.0
 
     def get_time_remaining(self) -> float:
         """Get time remaining for current move."""

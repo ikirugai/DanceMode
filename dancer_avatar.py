@@ -5,6 +5,7 @@ Renders a fun, colorful stick-figure dancer that follows body movements.
 
 import pygame
 import math
+import random
 from typing import Dict, List, Optional, Tuple
 from player_detection import PlayerLandmarks
 
@@ -255,7 +256,7 @@ class TargetRenderer:
 
     def __init__(self):
         self.pulse_time = 0.0
-        self.target_radius = 120  # Large visible target - matches hit detection
+        self.target_radius = 50  # Visual target radius
 
     def render_targets(self, surface: pygame.Surface,
                        left_target: Optional[Tuple[int, int]],
@@ -284,44 +285,53 @@ class TargetRenderer:
 
         # Color based on state
         if is_hit:
-            color = DancerColors.TARGET_HIT
-            inner_color = (150, 255, 150)
+            # Golden color when hit!
+            color = (255, 215, 0)  # Gold
+            inner_color = (255, 240, 150)  # Light gold
+            glow_color = (255, 200, 50)  # Golden glow
         elif time_progress > 0.75:
             # Urgent - running out of time
             color = DancerColors.TARGET_MISS
             inner_color = (255, 150, 150)
+            glow_color = color
         else:
             color = DancerColors.TARGET_ACTIVE
             inner_color = (255, 255, 200)
+            glow_color = color
 
-        # Outer glow ring
-        for i in range(3):
+        # Outer glow ring - bigger and brighter when hit
+        glow_rings = 5 if is_hit else 3
+        for i in range(glow_rings):
             ring_radius = radius + 10 + i * 8
-            alpha = 100 - i * 30
-            glow_color = (*color[:3], alpha) if len(color) == 3 else color
-            pygame.draw.circle(surface, glow_color, pos, ring_radius, 3)
+            alpha = 150 - i * 25 if is_hit else 100 - i * 30
+            ring_color = (*glow_color[:3],) if len(glow_color) == 3 else glow_color
+            pygame.draw.circle(surface, ring_color, pos, ring_radius, 4 if is_hit else 3)
 
         # Main target circle
-        pygame.draw.circle(surface, color, pos, radius, 4)
+        pygame.draw.circle(surface, color, pos, radius, 5 if is_hit else 4)
 
-        # Inner circle
+        # Inner circle - filled with gold when hit
         pygame.draw.circle(surface, inner_color, pos, radius - 15, 0)
         pygame.draw.circle(surface, color, pos, radius - 15, 2)
 
         # Center dot
-        pygame.draw.circle(surface, color, pos, 8)
+        pygame.draw.circle(surface, color, pos, 10 if is_hit else 8)
 
-        # Label
+        # Label or star when hit
         font = pygame.font.Font(None, 36)
-        text = font.render(label, True, (50, 50, 50))
+        if is_hit:
+            # Show star instead of L/R
+            text = font.render("*", True, (180, 140, 0))
+        else:
+            text = font.render(label, True, (50, 50, 50))
         text_rect = text.get_rect(center=pos)
         surface.blit(text, text_rect)
 
-        # Checkmark if hit
+        # Celebration text if hit
         if is_hit:
             check_font = pygame.font.Font(None, 48)
-            check = check_font.render("OK!", True, (50, 150, 50))
-            check_rect = check.get_rect(center=(pos[0], pos[1] - radius - 20))
+            check = check_font.render("POP!", True, (255, 200, 0))
+            check_rect = check.get_rect(center=(pos[0], pos[1] - radius - 25))
             surface.blit(check, check_rect)
 
     def render_countdown_ring(self, surface: pygame.Surface,
@@ -350,3 +360,145 @@ class TargetRenderer:
             rect = pygame.Rect(center[0] - radius, center[1] - radius,
                               radius * 2, radius * 2)
             pygame.draw.arc(surface, color, rect, start_angle, end_angle, 5)
+
+
+class Particle:
+    """A single particle for effects."""
+
+    def __init__(self, x: float, y: float, vx: float, vy: float,
+                 color: Tuple[int, int, int], size: float, lifetime: float,
+                 particle_type: str = "confetti"):
+        self.x = x
+        self.y = y
+        self.vx = vx
+        self.vy = vy
+        self.color = color
+        self.size = size
+        self.lifetime = lifetime
+        self.max_lifetime = lifetime
+        self.particle_type = particle_type
+        self.rotation = random.random() * 360
+        self.rotation_speed = random.random() * 10 - 5
+
+    def update(self, dt: float) -> bool:
+        """Update particle. Returns False if dead."""
+        self.lifetime -= dt
+        if self.lifetime <= 0:
+            return False
+
+        # Physics
+        self.x += self.vx * dt
+        self.y += self.vy * dt
+
+        if self.particle_type == "confetti":
+            self.vy += 200 * dt  # Gravity
+            self.vx *= 0.99  # Air resistance
+            self.rotation += self.rotation_speed
+        elif self.particle_type == "snowflake":
+            self.vy += 20 * dt  # Gentle fall
+            self.x += math.sin(self.y / 30) * 0.5  # Drift
+            self.rotation += self.rotation_speed * 0.3
+
+        return True
+
+    def draw(self, surface: pygame.Surface):
+        """Draw the particle."""
+        alpha = self.lifetime / self.max_lifetime
+        size = int(self.size * alpha)
+        if size < 1:
+            return
+
+        if self.particle_type == "confetti":
+            # Confetti rectangles
+            rect_surf = pygame.Surface((size * 2, size), pygame.SRCALPHA)
+            color_alpha = (*self.color, int(255 * alpha))
+            pygame.draw.rect(rect_surf, color_alpha, (0, 0, size * 2, size))
+            rotated = pygame.transform.rotate(rect_surf, self.rotation)
+            rect = rotated.get_rect(center=(int(self.x), int(self.y)))
+            surface.blit(rotated, rect)
+        elif self.particle_type == "snowflake":
+            # Snowflake circles with sparkle
+            color_alpha = (*self.color, int(200 * alpha))
+            pygame.draw.circle(surface, color_alpha, (int(self.x), int(self.y)), size)
+            # Inner sparkle
+            if size > 2:
+                pygame.draw.circle(surface, (255, 255, 255),
+                                 (int(self.x), int(self.y)), max(1, size // 2))
+
+
+class ParticleSystem:
+    """Manages particle effects for celebrations."""
+
+    # Christmas colors
+    CONFETTI_COLORS = [
+        (255, 215, 0),   # Gold
+        (255, 0, 0),     # Red
+        (0, 255, 0),     # Green
+        (255, 255, 255), # White
+        (255, 100, 100), # Light red
+        (100, 255, 100), # Light green
+    ]
+
+    SNOWFLAKE_COLORS = [
+        (255, 255, 255),  # White
+        (200, 220, 255),  # Light blue
+        (220, 240, 255),  # Ice blue
+    ]
+
+    def __init__(self):
+        self.particles: List[Particle] = []
+        self.snowflakes_enabled = False
+        self.snowflake_timer = 0.0
+
+    def spawn_confetti(self, x: float, y: float, count: int = 30):
+        """Spawn confetti burst at position."""
+        import random
+        for _ in range(count):
+            angle = random.random() * 2 * math.pi
+            speed = random.random() * 400 + 200
+            vx = math.cos(angle) * speed
+            vy = math.sin(angle) * speed - 200  # Bias upward
+            color = random.choice(self.CONFETTI_COLORS)
+            size = random.random() * 8 + 4
+            lifetime = random.random() * 1.5 + 1.0
+
+            self.particles.append(Particle(x, y, vx, vy, color, size, lifetime, "confetti"))
+
+    def spawn_snowflakes(self, screen_width: int, count: int = 3):
+        """Spawn snowflakes from top of screen."""
+        import random
+        for _ in range(count):
+            x = random.random() * screen_width
+            y = -10
+            vx = random.random() * 20 - 10
+            vy = random.random() * 50 + 30
+            color = random.choice(self.SNOWFLAKE_COLORS)
+            size = random.random() * 6 + 3
+            lifetime = random.random() * 5 + 3
+
+            self.particles.append(Particle(x, y, vx, vy, color, size, lifetime, "snowflake"))
+
+    def enable_snowflakes(self, enabled: bool = True):
+        """Enable or disable continuous snowfall."""
+        self.snowflakes_enabled = enabled
+
+    def update(self, dt: float, screen_width: int = 1280):
+        """Update all particles."""
+        # Update existing particles
+        self.particles = [p for p in self.particles if p.update(dt)]
+
+        # Spawn snowflakes if enabled
+        if self.snowflakes_enabled:
+            self.snowflake_timer += dt
+            if self.snowflake_timer >= 0.1:  # Spawn every 0.1 seconds
+                self.snowflake_timer = 0.0
+                self.spawn_snowflakes(screen_width, 2)
+
+    def draw(self, surface: pygame.Surface):
+        """Draw all particles."""
+        for particle in self.particles:
+            particle.draw(surface)
+
+    def clear(self):
+        """Clear all particles."""
+        self.particles.clear()
