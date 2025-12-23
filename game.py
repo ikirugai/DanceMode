@@ -93,9 +93,9 @@ class DanceModeGame:
         },
         'chanukkah': {
             'name': 'Chanukkah',
-            'bauble_name': 'Sufganiyah',
+            'bauble_name': 'Sufganiyot',
             'elf_name': 'Star',
-            'santa_name': 'Menorah',
+            'santa_name': 'Chanukkiah',
             'grinch_name': 'Antiochus',
             'colors': {
                 'primary': (0, 100, 200),  # Blue

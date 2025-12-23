@@ -56,7 +56,7 @@ Use the **arrow keys** to select your theme, then press **SPACE**:
 | Theme | Description | Background |
 |-------|-------------|------------|
 | **Christmas** | Baubles, Elves, Santa, Grinch | Snowflakes |
-| **Chanukkah** | Sufganiyot, Stars, Menorahs, Antiochus | Spinning Dreidels |
+| **Chanukkah** | Sufganiyot, Stars, Chanukkiah, Antiochus | Spinning Dreidels |
 | **K-Pop Demon Hunters** | Ramen, Light Sticks, Derpy Tiger, Saja Boys | Golden Disco Balls |
 
 ### Step 4: Play!
@@ -77,9 +77,9 @@ Use the **arrow keys** to select your theme, then press **SPACE**:
 ### Chanukkah Theme
 | Target | Points |
 |--------|--------|
-| Sufganiyah (donut) | +5 |
+| Sufganiyot (donuts) | +5 |
 | Star of David | +50 |
-| Menorah | +100 |
+| Chanukkiah | +100 |
 | Antiochus | -10 |
 
 ### K-Pop Demon Hunters Theme
