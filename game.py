@@ -127,6 +127,24 @@ class DanceModeGame:
                 'grinch': [(50, 50, 50), (100, 50, 50)],  # Dark colors
             },
         },
+        'twirlywoos': {
+            'name': 'Twirlywoos',
+            'bauble_name': 'Quacky Bird',
+            'elf_name': 'Twirlywoo',
+            'santa_name': 'Peekaboo',
+            'grinch_name': 'Very Important Lady',
+            'colors': {
+                'primary': (255, 100, 100),  # Soft red (BigHoo)
+                'secondary': (100, 200, 255),  # Soft blue (Toodloo)
+                'accent': (255, 220, 100),  # Yellow
+            },
+            'particle_colors': {
+                'bauble': [(255, 220, 100), (255, 180, 50)],  # Yellow bird
+                'elf': [(255, 100, 100), (100, 200, 255), (255, 150, 200), (200, 150, 255)],  # Twirlywoo colors
+                'santa': [(200, 200, 200), (255, 255, 255)],  # White fluffy
+                'grinch': [(50, 50, 80), (100, 80, 120)],  # Dark purple/gray
+            },
+        },
     }
 
     def __init__(self, width: int = 1280, height: int = 720, fullscreen: bool = False):
@@ -172,7 +190,7 @@ class DanceModeGame:
         self.countdown_timer = 3.0
         self.game_timer = 60.0  # 1 minute rounds
         self.score = 0
-        self.high_scores = {'christmas': 0, 'chanukkah': 0, 'kpop': 0}
+        self.high_scores = {'christmas': 0, 'chanukkah': 0, 'kpop': 0, 'twirlywoos': 0}
 
         # Targets
         self.targets: List[Target] = []
@@ -194,6 +212,7 @@ class DanceModeGame:
         self._create_christmas_sprites()
         self._create_chanukkah_sprites()
         self._create_kpop_sprites()
+        self._create_twirlywoos_sprites()
 
     def _init_snowflakes(self, count: int):
         """Create background snowflakes/sparkles."""
@@ -480,8 +499,128 @@ class DanceModeGame:
         pygame.draw.arc(saja, (100, 50, 50), (45, 60, 30, 15), 0.3, 2.8, 3)
         self.sprites['kpop_grinch'] = saja
 
+    def _create_twirlywoos_sprites(self):
+        """Create Twirlywoos themed sprites."""
+        # Quacky Bird (yellow duck-like bird) - 120x140
+        quacky = pygame.Surface((120, 140), pygame.SRCALPHA)
+        # Body (yellow oval)
+        pygame.draw.ellipse(quacky, (255, 220, 50), (25, 50, 70, 80))
+        # Head
+        pygame.draw.circle(quacky, (255, 220, 50), (60, 45), 35)
+        # Beak (orange)
+        pygame.draw.polygon(quacky, (255, 150, 50), [(75, 45), (110, 50), (75, 60)])
+        # Eye
+        pygame.draw.circle(quacky, (255, 255, 255), (55, 40), 12)
+        pygame.draw.circle(quacky, (0, 0, 0), (58, 40), 6)
+        pygame.draw.circle(quacky, (255, 255, 255), (60, 38), 2)
+        # Wing
+        pygame.draw.ellipse(quacky, (255, 200, 30), (20, 65, 35, 45))
+        # Feet
+        pygame.draw.polygon(quacky, (255, 150, 50), [(40, 125), (25, 140), (45, 140), (50, 125)])
+        pygame.draw.polygon(quacky, (255, 150, 50), [(70, 125), (65, 140), (85, 140), (80, 125)])
+        self.sprites['twirlywoos_bauble'] = quacky
+
+        # Create 4 different Twirlywoos and store them for random selection
+        twirlywoo_colors = [
+            ((255, 80, 80), (255, 120, 120), "BigHoo"),      # Red - Great BigHoo
+            ((80, 180, 255), (120, 200, 255), "Toodloo"),    # Blue - Toodloo
+            ((255, 130, 180), (255, 170, 200), "Chickedy"),  # Pink - Chickedy
+            ((180, 130, 255), (200, 160, 255), "Chick"),     # Purple - Chick
+        ]
+
+        self.twirlywoo_sprites = []
+        for main_color, highlight_color, name in twirlywoo_colors:
+            twirly = pygame.Surface((100, 140), pygame.SRCALPHA)
+            # Round body
+            pygame.draw.ellipse(twirly, main_color, (15, 40, 70, 90))
+            # Highlight on body
+            pygame.draw.ellipse(twirly, highlight_color, (25, 50, 40, 50))
+            # Head (antenna/topknot area)
+            pygame.draw.circle(twirly, main_color, (50, 35), 28)
+            # Topknot/antenna
+            pygame.draw.ellipse(twirly, main_color, (42, 0, 16, 35))
+            pygame.draw.circle(twirly, highlight_color, (50, 8), 10)
+            # Big round eyes
+            pygame.draw.circle(twirly, (255, 255, 255), (38, 38), 14)
+            pygame.draw.circle(twirly, (255, 255, 255), (62, 38), 14)
+            pygame.draw.circle(twirly, (0, 0, 0), (40, 40), 8)
+            pygame.draw.circle(twirly, (0, 0, 0), (64, 40), 8)
+            pygame.draw.circle(twirly, (255, 255, 255), (42, 38), 3)
+            pygame.draw.circle(twirly, (255, 255, 255), (66, 38), 3)
+            # Happy mouth
+            pygame.draw.arc(twirly, (200, 50, 50), (38, 48, 24, 16), 3.4, 6.0, 3)
+            # Little feet
+            pygame.draw.ellipse(twirly, main_color, (20, 120, 25, 18))
+            pygame.draw.ellipse(twirly, main_color, (55, 120, 25, 18))
+            self.twirlywoo_sprites.append(twirly)
+
+        # Use first one as default sprite
+        self.sprites['twirlywoos_elf'] = self.twirlywoo_sprites[0]
+
+        # Peekaboo (white fluffy creature that hides) - 140x180
+        peekaboo = pygame.Surface((140, 180), pygame.SRCALPHA)
+        # Fluffy white body (overlapping circles for fluffy effect)
+        for _ in range(20):
+            cx = 70 + random.randint(-30, 30)
+            cy = 100 + random.randint(-25, 25)
+            size = random.randint(20, 35)
+            pygame.draw.circle(peekaboo, (250, 250, 255), (cx, cy), size)
+        # Main body shape
+        pygame.draw.ellipse(peekaboo, (255, 255, 255), (20, 50, 100, 120))
+        # Fluffy texture
+        for _ in range(15):
+            cx = 70 + random.randint(-35, 35)
+            cy = 100 + random.randint(-40, 40)
+            pygame.draw.circle(peekaboo, (245, 248, 255), (cx, cy), random.randint(8, 15))
+        # Face area
+        pygame.draw.ellipse(peekaboo, (255, 230, 220), (45, 45, 50, 50))
+        # Eyes (big and cute, peeking)
+        pygame.draw.circle(peekaboo, (0, 0, 0), (55, 65), 10)
+        pygame.draw.circle(peekaboo, (0, 0, 0), (85, 65), 10)
+        pygame.draw.circle(peekaboo, (255, 255, 255), (58, 62), 4)
+        pygame.draw.circle(peekaboo, (255, 255, 255), (88, 62), 4)
+        # Rosy cheeks
+        pygame.draw.circle(peekaboo, (255, 180, 180), (48, 78), 8)
+        pygame.draw.circle(peekaboo, (255, 180, 180), (92, 78), 8)
+        # Little smile
+        pygame.draw.arc(peekaboo, (200, 100, 100), (58, 75, 24, 15), 3.4, 6.0, 2)
+        self.sprites['twirlywoos_santa'] = peekaboo
+
+        # Very Important Lady (stern looking lady in dark clothes) - 120x160
+        vil = pygame.Surface((120, 160), pygame.SRCALPHA)
+        # Dark dress/coat
+        pygame.draw.polygon(vil, (40, 30, 60), [(60, 55), (20, 160), (100, 160)])
+        pygame.draw.ellipse(vil, (50, 40, 70), (30, 50, 60, 50))
+        # Head
+        pygame.draw.circle(vil, (255, 218, 185), (60, 40), 30)
+        # Hair (dark, neat bun)
+        pygame.draw.ellipse(vil, (40, 30, 30), (35, 8, 50, 35))
+        pygame.draw.circle(vil, (40, 30, 30), (60, 15), 18)
+        # Stern eyebrows
+        pygame.draw.line(vil, (30, 20, 20), (42, 32), (55, 36), 4)
+        pygame.draw.line(vil, (30, 20, 20), (78, 32), (65, 36), 4)
+        # Disapproving eyes
+        pygame.draw.ellipse(vil, (255, 255, 255), (45, 35, 14, 12))
+        pygame.draw.ellipse(vil, (255, 255, 255), (65, 35, 14, 12))
+        pygame.draw.circle(vil, (80, 60, 40), (52, 42), 5)
+        pygame.draw.circle(vil, (80, 60, 40), (72, 42), 5)
+        # Pursed lips
+        pygame.draw.line(vil, (180, 100, 100), (52, 55), (68, 55), 3)
+        # Pearl necklace
+        for i in range(5):
+            px = 42 + i * 9
+            pygame.draw.circle(vil, (255, 255, 240), (px, 65), 4)
+        # Glasses (optional stern look)
+        pygame.draw.circle(vil, (100, 100, 100), (52, 40), 12, 2)
+        pygame.draw.circle(vil, (100, 100, 100), (72, 40), 12, 2)
+        pygame.draw.line(vil, (100, 100, 100), (64, 40), (60, 40), 2)
+        self.sprites['twirlywoos_grinch'] = vil
+
     def _get_sprite(self, target_type: str):
         """Get the correct sprite for current theme."""
+        # For Twirlywoos theme, randomly select one of the 4 Twirlywoos
+        if self.theme == 'twirlywoos' and target_type == 'elf':
+            return random.choice(self.twirlywoo_sprites)
         return self.sprites.get(f"{self.theme}_{target_type}")
 
     def _init_sounds(self):
@@ -618,7 +757,7 @@ class DanceModeGame:
         elif key == pygame.K_SPACE or key == pygame.K_RETURN:
             if self.state == GameState.MENU:
                 # Select theme and go to title
-                theme_keys = ['christmas', 'chanukkah', 'kpop']
+                theme_keys = ['christmas', 'chanukkah', 'kpop', 'twirlywoos']
                 self.theme = theme_keys[self.menu_selection]
                 self.state = GameState.TITLE
                 self._play_sound('select')
@@ -629,12 +768,12 @@ class DanceModeGame:
 
         elif key == pygame.K_LEFT or key == pygame.K_UP:
             if self.state == GameState.MENU:
-                self.menu_selection = (self.menu_selection - 1) % 3
+                self.menu_selection = (self.menu_selection - 1) % 4
                 self._play_sound('select')
 
         elif key == pygame.K_RIGHT or key == pygame.K_DOWN:
             if self.state == GameState.MENU:
-                self.menu_selection = (self.menu_selection + 1) % 3
+                self.menu_selection = (self.menu_selection + 1) % 4
                 self._play_sound('select')
 
         elif key == pygame.K_1:
@@ -655,6 +794,13 @@ class DanceModeGame:
             if self.state == GameState.MENU:
                 self.menu_selection = 2
                 self.theme = 'kpop'
+                self.state = GameState.TITLE
+                self._play_sound('select')
+
+        elif key == pygame.K_4:
+            if self.state == GameState.MENU:
+                self.menu_selection = 3
+                self.theme = 'twirlywoos'
                 self.state = GameState.TITLE
                 self._play_sound('select')
 
@@ -968,6 +1114,30 @@ class DanceModeGame:
                 # Mirror tile effect
                 if size > 3:
                     pygame.draw.circle(self.screen, (255, 255, 255), (x - size // 3, y - size // 3), 1)
+        elif self.theme == 'twirlywoos':
+            # Draw bubble clouds (soft, fluffy bubbles)
+            for snow in self.snowflakes:
+                x, y = int(snow['x']), int(snow['y'])
+                size = snow['size'] + 3
+                # Wobble effect for floaty bubbles
+                wobble = math.sin(pygame.time.get_ticks() / 300 + snow['x'] * 0.1) * 2
+                x = int(x + wobble)
+                # Soft pastel bubble colors
+                colors = [
+                    (255, 200, 220, 150),  # Pink
+                    (200, 220, 255, 150),  # Blue
+                    (220, 255, 220, 150),  # Green
+                    (255, 255, 200, 150),  # Yellow
+                ]
+                color_idx = int(snow['x'] + snow['y']) % len(colors)
+                r, g, b, a = colors[color_idx]
+                # Draw bubble with transparency
+                bubble_surf = pygame.Surface((size * 2 + 4, size * 2 + 4), pygame.SRCALPHA)
+                pygame.draw.circle(bubble_surf, (r, g, b, 100), (size + 2, size + 2), size)
+                pygame.draw.circle(bubble_surf, (255, 255, 255, 150), (size + 2, size + 2), size, 1)
+                # Highlight
+                pygame.draw.circle(bubble_surf, (255, 255, 255, 200), (size - 1, size - 1), max(2, size // 3))
+                self.screen.blit(bubble_surf, (x - size - 2, y - size - 2))
         else:
             # Draw snowflakes for Christmas
             for snow in self.snowflakes:
@@ -978,27 +1148,32 @@ class DanceModeGame:
         """Render theme selection menu."""
         # Title
         title = self.font_huge.render("Dance Mode", True, (255, 255, 255))
-        self.screen.blit(title, title.get_rect(center=(self.width // 2, self.height // 5)))
+        self.screen.blit(title, title.get_rect(center=(self.width // 2, self.height // 6)))
 
         subtitle = self.font_medium.render("Choose Your Theme", True, (200, 200, 200))
-        self.screen.blit(subtitle, subtitle.get_rect(center=(self.width // 2, self.height // 5 + 70)))
+        self.screen.blit(subtitle, subtitle.get_rect(center=(self.width // 2, self.height // 6 + 60)))
 
-        # Theme options - 3 boxes
-        box_width = 240
-        box_height = 180
-        gap = 40
-        total_width = 3 * box_width + 2 * gap
+        # Theme options - 2x2 grid
+        box_width = 280
+        box_height = 150
+        gap_x = 40
+        gap_y = 20
+        total_width = 2 * box_width + gap_x
         start_x = (self.width - total_width) // 2
-        box_y = self.height // 2 - 20
+        start_y = self.height // 3
 
         themes = [
             ('Christmas', (255, 50, 50), 'christmas', '1'),
             ('Chanukkah', (0, 100, 200), 'chanukkah', '2'),
-            ('K-Pop', (255, 0, 128), 'kpop', '3'),
+            ('Demon Hunters', (255, 0, 128), 'kpop', '3'),
+            ('Twirlywoos', (255, 100, 100), 'twirlywoos', '4'),
         ]
 
         for i, (name, color1, theme_key, key) in enumerate(themes):
-            box_x = start_x + i * (box_width + gap)
+            row = i // 2
+            col = i % 2
+            box_x = start_x + col * (box_width + gap_x)
+            box_y = start_y + row * (box_height + gap_y)
             selected = (i == self.menu_selection)
 
             # Draw box
@@ -1011,27 +1186,25 @@ class DanceModeGame:
             sprite_key = f"{theme_key}_bauble"
             sprite = self.sprites.get(sprite_key)
             if sprite:
-                # Scale down sprite a bit to fit
-                scaled = pygame.transform.scale(sprite, (80, 93))
-                sprite_rect = scaled.get_rect(center=(box_x + box_width // 2, box_y + 60))
+                # Scale down sprite to fit
+                scaled = pygame.transform.scale(sprite, (60, 70))
+                sprite_rect = scaled.get_rect(center=(box_x + 50, box_y + box_height // 2))
                 self.screen.blit(scaled, sprite_rect)
 
             # Theme name
             name_color = (255, 255, 255) if selected else (150, 150, 150)
-            # Use smaller font for K-Pop Demon Hunters
-            display_name = "Demon Hunters" if name == "K-Pop" else name
-            name_text = self.font_medium.render(display_name, True, name_color)
-            self.screen.blit(name_text, name_text.get_rect(center=(box_x + box_width // 2, box_y + 130)))
+            name_text = self.font_medium.render(name, True, name_color)
+            self.screen.blit(name_text, name_text.get_rect(midleft=(box_x + 90, box_y + box_height // 2 - 15)))
 
             # Key hint
             key_text = self.font_small.render(f"Press {key}", True, (150, 150, 150))
-            self.screen.blit(key_text, key_text.get_rect(center=(box_x + box_width // 2, box_y + 160)))
+            self.screen.blit(key_text, key_text.get_rect(midleft=(box_x + 90, box_y + box_height // 2 + 20)))
 
         # Instructions
         pulse = abs(math.sin(pygame.time.get_ticks() / 500)) * 0.3 + 0.7
         inst_color = (int(255 * pulse), int(255 * pulse), int(100 * pulse))
         instructions = self.font_medium.render("Use Arrow Keys to Select, SPACE to Start", True, inst_color)
-        self.screen.blit(instructions, instructions.get_rect(center=(self.width // 2, self.height - 80)))
+        self.screen.blit(instructions, instructions.get_rect(center=(self.width // 2, self.height - 60)))
 
     def _render_title(self):
         """Render title screen."""

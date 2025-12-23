@@ -1,6 +1,6 @@
 # DanceMode
 
-A fun hand-tracking game with 3 awesome themes! Uses your laptop's camera to track your hand movements.
+A fun hand-tracking game with 4 awesome themes! Uses your laptop's camera to track your hand movements.
 
 ## What You Need
 
@@ -57,7 +57,8 @@ Use the **arrow keys** to select your theme, then press **SPACE**:
 |-------|-------------|------------|
 | **Christmas** | Baubles, Elves, Santa, Grinch | Snowflakes |
 | **Chanukkah** | Sufganiyot, Stars, Chanukkiah, Antiochus | Spinning Dreidels |
-| **K-Pop Demon Hunters** | Ramen, Light Sticks, Derpy Tiger, Saja Boys | Golden Disco Balls |
+| **Demon Hunters** | Ramen, Light Sticks, Derpy Tiger, Saja Boys | Golden Disco Balls |
+| **Twirlywoos** | Quacky Birds, Twirlywoos, Peekaboo, Very Important Lady | Bubble Clouds |
 
 ### Step 4: Play!
 1. Press **SPACE** to start
@@ -82,7 +83,7 @@ Use the **arrow keys** to select your theme, then press **SPACE**:
 | Chanukkiah | +100 |
 | Antiochus | -10 |
 
-### K-Pop Demon Hunters Theme
+### Demon Hunters Theme
 | Target | Points |
 |--------|--------|
 | Ramen | +5 |
@@ -90,13 +91,21 @@ Use the **arrow keys** to select your theme, then press **SPACE**:
 | Derpy (blue tiger) | +100 |
 | Saja Boys | -10 |
 
+### Twirlywoos Theme
+| Target | Points |
+|--------|--------|
+| Quacky Bird | +5 |
+| Twirlywoo (random!) | +50 |
+| Peekaboo | +100 |
+| Very Important Lady | -10 |
+
 ## Controls
 
 | Key | What it does |
 |-----|--------------|
 | Arrow Keys | Select theme |
 | SPACE | Select / Start / Play again |
-| 1, 2, 3 | Quick select themes |
+| 1, 2, 3, 4 | Quick select themes |
 | F | Toggle fullscreen |
 | ESC | Back to theme select / Quit |
 
