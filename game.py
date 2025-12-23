@@ -109,6 +109,24 @@ class DanceModeGame:
                 'grinch': [(128, 0, 128), (100, 100, 100)],  # Purple/gray
             },
         },
+        'kpop': {
+            'name': 'K-Pop Demon Hunters',
+            'bauble_name': 'Ramen',
+            'elf_name': 'Light Stick',
+            'santa_name': 'Derpy',
+            'grinch_name': 'Saja Boys',
+            'colors': {
+                'primary': (255, 0, 128),  # Hot pink
+                'secondary': (0, 255, 255),  # Cyan
+                'accent': (255, 215, 0),  # Gold
+            },
+            'particle_colors': {
+                'bauble': [(255, 200, 100), (255, 255, 200)],  # Noodle colors
+                'elf': [(255, 0, 128), (0, 255, 255)],  # Pink and cyan
+                'santa': [(100, 150, 255), (255, 165, 0)],  # Blue tiger, orange
+                'grinch': [(50, 50, 50), (100, 50, 50)],  # Dark colors
+            },
+        },
     }
 
     def __init__(self, width: int = 1280, height: int = 720, fullscreen: bool = False):
@@ -154,7 +172,7 @@ class DanceModeGame:
         self.countdown_timer = 3.0
         self.game_timer = 60.0  # 1 minute rounds
         self.score = 0
-        self.high_scores = {'christmas': 0, 'chanukkah': 0}
+        self.high_scores = {'christmas': 0, 'chanukkah': 0, 'kpop': 0}
 
         # Targets
         self.targets: List[Target] = []
@@ -171,10 +189,11 @@ class DanceModeGame:
         # Sounds
         self._init_sounds()
 
-        # Create sprites for both themes
+        # Create sprites for all themes
         self.sprites = {}
         self._create_christmas_sprites()
         self._create_chanukkah_sprites()
+        self._create_kpop_sprites()
 
     def _init_snowflakes(self, count: int):
         """Create background snowflakes/sparkles."""
@@ -347,6 +366,120 @@ class DanceModeGame:
         pygame.draw.ellipse(antiochus, (80, 60, 40), (45, 65, 30, 25))
         self.sprites['chanukkah_grinch'] = antiochus
 
+    def _create_kpop_sprites(self):
+        """Create K-Pop Demon Hunters themed sprites."""
+        # Ramen bowl - 120x140
+        ramen = pygame.Surface((120, 140), pygame.SRCALPHA)
+        # Bowl
+        pygame.draw.ellipse(ramen, (255, 100, 100), (10, 60, 100, 60))  # Red bowl
+        pygame.draw.ellipse(ramen, (255, 150, 150), (15, 65, 90, 50))  # Inner bowl
+        # Broth
+        pygame.draw.ellipse(ramen, (255, 220, 150), (20, 55, 80, 45))
+        # Noodles (wavy lines)
+        for i in range(5):
+            start_x = 30 + i * 12
+            points = [(start_x + math.sin(j * 0.5) * 5, 60 + j * 3) for j in range(10)]
+            if len(points) > 1:
+                pygame.draw.lines(ramen, (255, 240, 200), False, points, 3)
+        # Egg
+        pygame.draw.ellipse(ramen, (255, 255, 255), (45, 50, 30, 20))
+        pygame.draw.ellipse(ramen, (255, 180, 50), (52, 55, 16, 12))
+        # Chopsticks
+        pygame.draw.line(ramen, (139, 90, 43), (80, 30), (100, 80), 4)
+        pygame.draw.line(ramen, (139, 90, 43), (85, 28), (105, 78), 4)
+        # Steam
+        for i in range(3):
+            x = 40 + i * 20
+            pygame.draw.arc(ramen, (200, 200, 200), (x, 25, 15, 25), 0, 3.14, 2)
+        self.sprites['kpop_bauble'] = ramen
+
+        # Light Stick (Huntrix style) - 100x140
+        lightstick = pygame.Surface((100, 140), pygame.SRCALPHA)
+        # Handle
+        pygame.draw.rect(lightstick, (40, 40, 40), (40, 70, 20, 70))
+        pygame.draw.rect(lightstick, (60, 60, 60), (42, 72, 16, 66))
+        # Glowing top (star/diamond shape)
+        glow_color = (255, 0, 128)  # Hot pink
+        glow_inner = (255, 150, 200)
+        # Diamond shape
+        diamond_points = [(50, 10), (75, 45), (50, 80), (25, 45)]
+        pygame.draw.polygon(lightstick, glow_color, diamond_points)
+        pygame.draw.polygon(lightstick, glow_inner, [(50, 20), (65, 45), (50, 70), (35, 45)])
+        # Inner glow
+        pygame.draw.circle(lightstick, (255, 255, 255), (50, 45), 12)
+        # Sparkles
+        for angle in range(0, 360, 45):
+            rad = math.radians(angle)
+            sx = 50 + math.cos(rad) * 30
+            sy = 45 + math.sin(rad) * 25
+            pygame.draw.circle(lightstick, (255, 255, 255), (int(sx), int(sy)), 3)
+        self.sprites['kpop_elf'] = lightstick
+
+        # Derpy the Blue Tiger - 140x180
+        derpy = pygame.Surface((140, 180), pygame.SRCALPHA)
+        # Body (blue)
+        pygame.draw.ellipse(derpy, (100, 150, 255), (25, 80, 90, 90))
+        # Tiger stripes on body
+        for i in range(3):
+            y = 95 + i * 25
+            pygame.draw.arc(derpy, (50, 100, 200), (35, y, 70, 20), 0, 3.14, 4)
+        # Head (blue)
+        pygame.draw.circle(derpy, (100, 150, 255), (70, 55), 45)
+        # Ears
+        pygame.draw.polygon(derpy, (100, 150, 255), [(35, 25), (25, 0), (50, 20)])
+        pygame.draw.polygon(derpy, (100, 150, 255), [(105, 25), (115, 0), (90, 20)])
+        pygame.draw.polygon(derpy, (255, 180, 200), [(38, 22), (32, 5), (48, 20)])
+        pygame.draw.polygon(derpy, (255, 180, 200), [(102, 22), (108, 5), (92, 20)])
+        # Tiger stripes on face
+        pygame.draw.arc(derpy, (50, 100, 200), (40, 30, 25, 15), 0, 3.14, 3)
+        pygame.draw.arc(derpy, (50, 100, 200), (75, 30, 25, 15), 0, 3.14, 3)
+        # Big derpy orange eyes
+        pygame.draw.circle(derpy, (255, 165, 0), (55, 50), 18)  # Left eye
+        pygame.draw.circle(derpy, (255, 165, 0), (85, 50), 18)  # Right eye
+        pygame.draw.circle(derpy, (0, 0, 0), (58, 52), 10)  # Left pupil (off-center for derpy look)
+        pygame.draw.circle(derpy, (0, 0, 0), (82, 48), 10)  # Right pupil (different position)
+        pygame.draw.circle(derpy, (255, 255, 255), (60, 48), 5)  # Left highlight
+        pygame.draw.circle(derpy, (255, 255, 255), (84, 44), 5)  # Right highlight
+        # Nose
+        pygame.draw.polygon(derpy, (255, 150, 200), [(70, 65), (65, 75), (75, 75)])
+        # Derpy smile
+        pygame.draw.arc(derpy, (50, 100, 200), (55, 70, 30, 20), 3.3, 6.1, 3)
+        # Whiskers
+        pygame.draw.line(derpy, (50, 100, 200), (40, 70), (20, 65), 2)
+        pygame.draw.line(derpy, (50, 100, 200), (40, 75), (20, 78), 2)
+        pygame.draw.line(derpy, (50, 100, 200), (100, 70), (120, 65), 2)
+        pygame.draw.line(derpy, (50, 100, 200), (100, 75), (120, 78), 2)
+        self.sprites['kpop_santa'] = derpy
+
+        # Saja Boys (with traditional Korean gat hats) - 120x160
+        saja = pygame.Surface((120, 160), pygame.SRCALPHA)
+        # Body (dark hanbok)
+        pygame.draw.ellipse(saja, (30, 30, 50), (25, 75, 70, 85))
+        # White collar detail
+        pygame.draw.polygon(saja, (200, 200, 200), [(45, 75), (60, 95), (75, 75)])
+        # Head
+        pygame.draw.circle(saja, (80, 70, 60), (60, 50), 30)
+        # Traditional Gat hat (wide-brimmed Korean hat)
+        # Brim (very wide, black)
+        pygame.draw.ellipse(saja, (20, 20, 20), (5, 20, 110, 30))
+        # Top of hat (cylindrical)
+        pygame.draw.ellipse(saja, (20, 20, 20), (35, 5, 50, 25))
+        pygame.draw.rect(saja, (20, 20, 20), (35, 15, 50, 15))
+        # Hat string
+        pygame.draw.line(saja, (100, 50, 50), (30, 45), (25, 80), 2)
+        pygame.draw.line(saja, (100, 50, 50), (90, 45), (95, 80), 2)
+        # Mean eyebrows
+        pygame.draw.line(saja, (40, 30, 30), (40, 42), (55, 48), 4)
+        pygame.draw.line(saja, (40, 30, 30), (80, 42), (65, 48), 4)
+        # Glowing red eyes (demon!)
+        pygame.draw.circle(saja, (255, 0, 0), (50, 52), 8)
+        pygame.draw.circle(saja, (255, 0, 0), (70, 52), 8)
+        pygame.draw.circle(saja, (255, 100, 100), (52, 50), 3)
+        pygame.draw.circle(saja, (255, 100, 100), (72, 50), 3)
+        # Angry mouth
+        pygame.draw.arc(saja, (100, 50, 50), (45, 60, 30, 15), 0.3, 2.8, 3)
+        self.sprites['kpop_grinch'] = saja
+
     def _get_sprite(self, target_type: str):
         """Get the correct sprite for current theme."""
         return self.sprites.get(f"{self.theme}_{target_type}")
@@ -485,7 +618,8 @@ class DanceModeGame:
         elif key == pygame.K_SPACE or key == pygame.K_RETURN:
             if self.state == GameState.MENU:
                 # Select theme and go to title
-                self.theme = 'christmas' if self.menu_selection == 0 else 'chanukkah'
+                theme_keys = ['christmas', 'chanukkah', 'kpop']
+                self.theme = theme_keys[self.menu_selection]
                 self.state = GameState.TITLE
                 self._play_sound('select')
             elif self.state == GameState.TITLE:
@@ -493,10 +627,14 @@ class DanceModeGame:
             elif self.state == GameState.RESULTS:
                 self.state = GameState.TITLE
 
-        elif key == pygame.K_UP or key == pygame.K_DOWN or key == pygame.K_LEFT or key == pygame.K_RIGHT:
+        elif key == pygame.K_LEFT or key == pygame.K_UP:
             if self.state == GameState.MENU:
-                # Toggle selection
-                self.menu_selection = 1 - self.menu_selection
+                self.menu_selection = (self.menu_selection - 1) % 3
+                self._play_sound('select')
+
+        elif key == pygame.K_RIGHT or key == pygame.K_DOWN:
+            if self.state == GameState.MENU:
+                self.menu_selection = (self.menu_selection + 1) % 3
                 self._play_sound('select')
 
         elif key == pygame.K_1:
@@ -510,6 +648,13 @@ class DanceModeGame:
             if self.state == GameState.MENU:
                 self.menu_selection = 1
                 self.theme = 'chanukkah'
+                self.state = GameState.TITLE
+                self._play_sound('select')
+
+        elif key == pygame.K_3:
+            if self.state == GameState.MENU:
+                self.menu_selection = 2
+                self.theme = 'kpop'
                 self.state = GameState.TITLE
                 self._play_sound('select')
 
@@ -781,7 +926,7 @@ class DanceModeGame:
             self._render_results()
 
     def _draw_snowflakes(self):
-        """Draw falling snowflakes (Christmas) or dreidels (Chanukkah)."""
+        """Draw falling snowflakes (Christmas), dreidels (Chanukkah), or disco balls (K-Pop)."""
         if self.theme == 'chanukkah':
             # Draw spinning dreidels
             for snow in self.snowflakes:
@@ -805,6 +950,24 @@ class DanceModeGame:
                 hx = x + math.cos(handle_angle) * size * 1.3
                 hy = y + math.sin(handle_angle) * size * 1.3
                 pygame.draw.line(self.screen, (0, 100, 200), (x, y), (int(hx), int(hy)), 2)
+        elif self.theme == 'kpop':
+            # Draw golden disco balls
+            for snow in self.snowflakes:
+                x, y = int(snow['x']), int(snow['y'])
+                size = snow['size'] + 2
+                # Disco ball - golden with sparkle effect
+                time_offset = pygame.time.get_ticks() / 200 + snow['x']
+                brightness = int(200 + 55 * math.sin(time_offset))
+                color = (brightness, int(brightness * 0.85), 0)  # Golden
+                pygame.draw.circle(self.screen, color, (x, y), size)
+                # Sparkle highlight
+                highlight_angle = time_offset % (2 * math.pi)
+                hx = x + math.cos(highlight_angle) * size * 0.4
+                hy = y + math.sin(highlight_angle) * size * 0.4
+                pygame.draw.circle(self.screen, (255, 255, 200), (int(hx), int(hy)), max(1, size // 3))
+                # Mirror tile effect
+                if size > 3:
+                    pygame.draw.circle(self.screen, (255, 255, 255), (x - size // 3, y - size // 3), 1)
         else:
             # Draw snowflakes for Christmas
             for snow in self.snowflakes:
@@ -815,24 +978,26 @@ class DanceModeGame:
         """Render theme selection menu."""
         # Title
         title = self.font_huge.render("Dance Mode", True, (255, 255, 255))
-        self.screen.blit(title, title.get_rect(center=(self.width // 2, self.height // 4)))
+        self.screen.blit(title, title.get_rect(center=(self.width // 2, self.height // 5)))
 
         subtitle = self.font_medium.render("Choose Your Theme", True, (200, 200, 200))
-        self.screen.blit(subtitle, subtitle.get_rect(center=(self.width // 2, self.height // 4 + 70)))
+        self.screen.blit(subtitle, subtitle.get_rect(center=(self.width // 2, self.height // 5 + 70)))
 
-        # Theme options
-        box_width = 300
-        box_height = 200
-        gap = 100
-        start_x = self.width // 2 - box_width - gap // 2
-        box_y = self.height // 2 - 30
+        # Theme options - 3 boxes
+        box_width = 240
+        box_height = 180
+        gap = 40
+        total_width = 3 * box_width + 2 * gap
+        start_x = (self.width - total_width) // 2
+        box_y = self.height // 2 - 20
 
         themes = [
-            ('Christmas', (255, 50, 50), (50, 255, 50), '1'),
-            ('Chanukkah', (0, 100, 200), (255, 255, 255), '2'),
+            ('Christmas', (255, 50, 50), 'christmas', '1'),
+            ('Chanukkah', (0, 100, 200), 'chanukkah', '2'),
+            ('K-Pop', (255, 0, 128), 'kpop', '3'),
         ]
 
-        for i, (name, color1, color2, key) in enumerate(themes):
+        for i, (name, color1, theme_key, key) in enumerate(themes):
             box_x = start_x + i * (box_width + gap)
             selected = (i == self.menu_selection)
 
@@ -843,20 +1008,24 @@ class DanceModeGame:
                            (box_x, box_y, box_width, box_height), border_width, border_radius=15)
 
             # Draw theme preview sprite
-            sprite_key = f"{'christmas' if i == 0 else 'chanukkah'}_bauble"
+            sprite_key = f"{theme_key}_bauble"
             sprite = self.sprites.get(sprite_key)
             if sprite:
-                sprite_rect = sprite.get_rect(center=(box_x + box_width // 2, box_y + 70))
-                self.screen.blit(sprite, sprite_rect)
+                # Scale down sprite a bit to fit
+                scaled = pygame.transform.scale(sprite, (80, 93))
+                sprite_rect = scaled.get_rect(center=(box_x + box_width // 2, box_y + 60))
+                self.screen.blit(scaled, sprite_rect)
 
             # Theme name
             name_color = (255, 255, 255) if selected else (150, 150, 150)
-            name_text = self.font_large.render(name, True, name_color)
-            self.screen.blit(name_text, name_text.get_rect(center=(box_x + box_width // 2, box_y + 155)))
+            # Use smaller font for K-Pop Demon Hunters
+            display_name = "Demon Hunters" if name == "K-Pop" else name
+            name_text = self.font_medium.render(display_name, True, name_color)
+            self.screen.blit(name_text, name_text.get_rect(center=(box_x + box_width // 2, box_y + 130)))
 
             # Key hint
             key_text = self.font_small.render(f"Press {key}", True, (150, 150, 150))
-            self.screen.blit(key_text, key_text.get_rect(center=(box_x + box_width // 2, box_y + 185)))
+            self.screen.blit(key_text, key_text.get_rect(center=(box_x + box_width // 2, box_y + 160)))
 
         # Instructions
         pulse = abs(math.sin(pygame.time.get_ticks() / 500)) * 0.3 + 0.7

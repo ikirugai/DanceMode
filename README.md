@@ -1,6 +1,6 @@
 # DanceMode
 
-A fun hand-tracking game for the holidays! Uses your laptop's camera to track your hand movements. Choose between Christmas and Chanukkah themes!
+A fun hand-tracking game with 3 awesome themes! Uses your laptop's camera to track your hand movements.
 
 ## What You Need
 
@@ -51,11 +51,13 @@ python main.py
 
 ### Step 3: Choose Your Theme!
 
-Use the **arrow keys** to select:
-- **Christmas** - Baubles, Elves, Santa, and the Grinch with falling snowflakes
-- **Chanukkah** - Sufganiyot (donuts), Stars of David, Menorahs, and Antiochus with spinning dreidels
+Use the **arrow keys** to select your theme, then press **SPACE**:
 
-Press **SPACE** or **1**/**2** to pick your theme!
+| Theme | Description | Background |
+|-------|-------------|------------|
+| **Christmas** | Baubles, Elves, Santa, Grinch | Snowflakes |
+| **Chanukkah** | Sufganiyot, Stars, Menorahs, Antiochus | Spinning Dreidels |
+| **K-Pop Demon Hunters** | Ramen, Light Sticks, Derpy Tiger, Saja Boys | Golden Disco Balls |
 
 ### Step 4: Play!
 1. Press **SPACE** to start
@@ -64,12 +66,29 @@ Press **SPACE** or **1**/**2** to pick your theme!
 
 ## Game Rules
 
-| Christmas | Chanukkah | Points | Tips |
-|-----------|-----------|--------|------|
-| Bauble | Sufganiyah | +5 | Easy to hit, always there |
-| Elf | Star of David | +50 | Moves around, disappears fast! |
-| Santa | Menorah | +100 | Super fast, very rare - grab it! |
-| Grinch | Antiochus | -10 | Stay away! |
+### Christmas Theme
+| Target | Points |
+|--------|--------|
+| Bauble | +5 |
+| Elf | +50 |
+| Santa | +100 |
+| Grinch | -10 |
+
+### Chanukkah Theme
+| Target | Points |
+|--------|--------|
+| Sufganiyah (donut) | +5 |
+| Star of David | +50 |
+| Menorah | +100 |
+| Antiochus | -10 |
+
+### K-Pop Demon Hunters Theme
+| Target | Points |
+|--------|--------|
+| Ramen | +5 |
+| Light Stick | +50 |
+| Derpy (blue tiger) | +100 |
+| Saja Boys | -10 |
 
 ## Controls
 
@@ -77,8 +96,7 @@ Press **SPACE** or **1**/**2** to pick your theme!
 |-----|--------------|
 | Arrow Keys | Select theme |
 | SPACE | Select / Start / Play again |
-| 1 | Quick select Christmas |
-| 2 | Quick select Chanukkah |
+| 1, 2, 3 | Quick select themes |
 | F | Toggle fullscreen |
 | ESC | Back to theme select / Quit |
 
@@ -92,4 +110,4 @@ Press **SPACE** or **1**/**2** to pick your theme!
 
 ## Have Fun!
 
-Happy Holidays!
+Happy Gaming!
