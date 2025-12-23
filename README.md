@@ -95,9 +95,11 @@ Use the **arrow keys** to select your theme, then press **SPACE**:
 | Target | Points |
 |--------|--------|
 | Quacky Bird | +5 |
-| Twirlywoo (random!) | +50 |
+| Twirlywoo* | +50 |
 | Peekaboo | +100 |
 | Very Important Lady | -10 |
+
+*Each Twirlywoo randomly appears as Great Big Hoo, Toodloo, Chick, or Chickedy!
 
 ## Controls
 

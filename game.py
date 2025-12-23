@@ -34,6 +34,7 @@ class Target:
     size: float = 50
     popped: bool = False
     pop_timer: float = 0  # animation timer after pop
+    sprite_variant: int = 0  # For Twirlywoos: which of the 4 characters (0-3)
 
 
 class DanceModeGame:
@@ -500,127 +501,252 @@ class DanceModeGame:
         self.sprites['kpop_grinch'] = saja
 
     def _create_twirlywoos_sprites(self):
-        """Create Twirlywoos themed sprites."""
-        # Quacky Bird (yellow duck-like bird) - 120x140
+        """Create Twirlywoos themed sprites based on actual character designs."""
+        # Quacky Bird - cream/white body with yellow wings, orange beak and feet - 120x140
         quacky = pygame.Surface((120, 140), pygame.SRCALPHA)
-        # Body (yellow oval)
-        pygame.draw.ellipse(quacky, (255, 220, 50), (25, 50, 70, 80))
-        # Head
-        pygame.draw.circle(quacky, (255, 220, 50), (60, 45), 35)
-        # Beak (orange)
-        pygame.draw.polygon(quacky, (255, 150, 50), [(75, 45), (110, 50), (75, 60)])
-        # Eye
-        pygame.draw.circle(quacky, (255, 255, 255), (55, 40), 12)
-        pygame.draw.circle(quacky, (0, 0, 0), (58, 40), 6)
-        pygame.draw.circle(quacky, (255, 255, 255), (60, 38), 2)
-        # Wing
-        pygame.draw.ellipse(quacky, (255, 200, 30), (20, 65, 35, 45))
-        # Feet
-        pygame.draw.polygon(quacky, (255, 150, 50), [(40, 125), (25, 140), (45, 140), (50, 125)])
-        pygame.draw.polygon(quacky, (255, 150, 50), [(70, 125), (65, 140), (85, 140), (80, 125)])
+        # Cream body (round)
+        pygame.draw.ellipse(quacky, (255, 250, 235), (35, 55, 50, 55))
+        # Long yellow/orange neck
+        pygame.draw.rect(quacky, (255, 200, 50), (52, 35, 16, 30))
+        # Cream head (round)
+        pygame.draw.circle(quacky, (255, 250, 235), (60, 25), 22)
+        # Orange beak
+        pygame.draw.ellipse(quacky, (255, 165, 50), (72, 20, 25, 14))
+        # Simple black dot eyes
+        pygame.draw.circle(quacky, (0, 0, 0), (55, 20), 4)
+        pygame.draw.circle(quacky, (0, 0, 0), (65, 20), 4)
+        # Yellow wings (outstretched)
+        pygame.draw.ellipse(quacky, (255, 210, 50), (5, 55, 40, 35))  # Left wing
+        pygame.draw.ellipse(quacky, (255, 210, 50), (75, 55, 40, 35))  # Right wing
+        # Yellow legs
+        pygame.draw.rect(quacky, (255, 210, 50), (45, 105, 8, 25))
+        pygame.draw.rect(quacky, (255, 210, 50), (67, 105, 8, 25))
+        # Orange webbed feet
+        pygame.draw.ellipse(quacky, (255, 165, 50), (35, 125, 25, 15))
+        pygame.draw.ellipse(quacky, (255, 165, 50), (60, 125, 25, 15))
         self.sprites['twirlywoos_bauble'] = quacky
 
-        # Create 4 different Twirlywoos and store them for random selection
-        twirlywoo_colors = [
-            ((255, 80, 80), (255, 120, 120), "BigHoo"),      # Red - Great BigHoo
-            ((80, 180, 255), (120, 200, 255), "Toodloo"),    # Blue - Toodloo
-            ((255, 130, 180), (255, 170, 200), "Chickedy"),  # Pink - Chickedy
-            ((180, 130, 255), (200, 160, 255), "Chick"),     # Purple - Chick
-        ]
-
+        # Create 4 different Twirlywoos based on actual character designs
+        # Bodies are large pear shapes, heads are small on top
         self.twirlywoo_sprites = []
-        for main_color, highlight_color, name in twirlywoo_colors:
-            twirly = pygame.Surface((100, 140), pygame.SRCALPHA)
-            # Round body
-            pygame.draw.ellipse(twirly, main_color, (15, 40, 70, 90))
-            # Highlight on body
-            pygame.draw.ellipse(twirly, highlight_color, (25, 50, 40, 50))
-            # Head (antenna/topknot area)
-            pygame.draw.circle(twirly, main_color, (50, 35), 28)
-            # Topknot/antenna
-            pygame.draw.ellipse(twirly, main_color, (42, 0, 16, 35))
-            pygame.draw.circle(twirly, highlight_color, (50, 8), 10)
-            # Big round eyes
-            pygame.draw.circle(twirly, (255, 255, 255), (38, 38), 14)
-            pygame.draw.circle(twirly, (255, 255, 255), (62, 38), 14)
-            pygame.draw.circle(twirly, (0, 0, 0), (40, 40), 8)
-            pygame.draw.circle(twirly, (0, 0, 0), (64, 40), 8)
-            pygame.draw.circle(twirly, (255, 255, 255), (42, 38), 3)
-            pygame.draw.circle(twirly, (255, 255, 255), (66, 38), 3)
-            # Happy mouth
-            pygame.draw.arc(twirly, (200, 50, 50), (38, 48, 24, 16), 3.4, 6.0, 3)
-            # Little feet
-            pygame.draw.ellipse(twirly, main_color, (20, 120, 25, 18))
-            pygame.draw.ellipse(twirly, main_color, (55, 120, 25, 18))
-            self.twirlywoo_sprites.append(twirly)
+
+        # Great Big Hoo - Blue body with light blue belly, orange crest and feet
+        bighoo = pygame.Surface((110, 155), pygame.SRCALPHA)
+        # BIG round/pear body - much larger than head
+        pygame.draw.ellipse(bighoo, (70, 150, 220), (5, 45, 100, 100))  # Blue body
+        pygame.draw.ellipse(bighoo, (150, 210, 255), (18, 57, 74, 75))  # Light blue belly
+        # Round head on top (bigger to match proportions)
+        pygame.draw.circle(bighoo, (70, 150, 220), (55, 34), 24)
+        # Orange arrow crest (3 prongs)
+        pygame.draw.polygon(bighoo, (255, 120, 50), [(55, 0), (49, 14), (61, 14)])  # Center
+        pygame.draw.polygon(bighoo, (255, 120, 50), [(43, 4), (40, 14), (50, 14)])  # Left
+        pygame.draw.polygon(bighoo, (255, 120, 50), [(67, 4), (60, 14), (70, 14)])  # Right
+        # Simple eyes with white and black
+        pygame.draw.circle(bighoo, (255, 255, 255), (45, 32), 8)
+        pygame.draw.circle(bighoo, (255, 255, 255), (65, 32), 8)
+        pygame.draw.circle(bighoo, (0, 0, 0), (46, 33), 4)
+        pygame.draw.circle(bighoo, (0, 0, 0), (64, 33), 4)
+        # Cute smile
+        pygame.draw.arc(bighoo, (50, 100, 180), (45, 42, 20, 12), 3.4, 6.0, 2)
+        # Arms/flippers on sides of big body
+        pygame.draw.ellipse(bighoo, (70, 150, 220), (0, 55, 18, 50))  # Left arm
+        pygame.draw.ellipse(bighoo, (70, 150, 220), (92, 55, 18, 50))  # Right arm
+        # Orange striped legs
+        pygame.draw.rect(bighoo, (255, 120, 50), (35, 130, 12, 18))
+        pygame.draw.rect(bighoo, (255, 120, 50), (63, 130, 12, 18))
+        pygame.draw.rect(bighoo, (255, 200, 100), (35, 133, 12, 4))  # Stripe
+        pygame.draw.rect(bighoo, (255, 200, 100), (63, 133, 12, 4))  # Stripe
+        # Orange webbed feet
+        pygame.draw.ellipse(bighoo, (255, 120, 50), (27, 142, 28, 10))
+        pygame.draw.ellipse(bighoo, (255, 120, 50), (55, 142, 28, 10))
+        self.twirlywoo_sprites.append(bighoo)
+
+        # Toodloo - Pink/coral body with cream belly, orange crest
+        toodloo = pygame.Surface((110, 155), pygame.SRCALPHA)
+        # BIG round/pear body
+        pygame.draw.ellipse(toodloo, (220, 100, 120), (5, 45, 100, 100))  # Pink body
+        pygame.draw.ellipse(toodloo, (255, 235, 230), (18, 57, 74, 75))  # Cream belly
+        # Round head (bigger to match proportions)
+        pygame.draw.circle(toodloo, (220, 100, 120), (55, 34), 24)
+        # Orange arrow crest (3 prongs)
+        pygame.draw.polygon(toodloo, (255, 150, 50), [(55, 0), (49, 14), (61, 14)])
+        pygame.draw.polygon(toodloo, (255, 150, 50), [(43, 4), (40, 14), (50, 14)])
+        pygame.draw.polygon(toodloo, (255, 150, 50), [(67, 4), (60, 14), (70, 14)])
+        # Simple eyes
+        pygame.draw.circle(toodloo, (255, 255, 255), (45, 32), 8)
+        pygame.draw.circle(toodloo, (255, 255, 255), (65, 32), 8)
+        pygame.draw.circle(toodloo, (0, 0, 0), (46, 33), 4)
+        pygame.draw.circle(toodloo, (0, 0, 0), (64, 33), 4)
+        # Cute smile
+        pygame.draw.arc(toodloo, (180, 70, 90), (45, 42, 20, 12), 3.4, 6.0, 2)
+        # Arms/flippers
+        pygame.draw.ellipse(toodloo, (220, 100, 120), (0, 55, 18, 50))
+        pygame.draw.ellipse(toodloo, (220, 100, 120), (92, 55, 18, 50))
+        # Orange/yellow striped legs
+        pygame.draw.rect(toodloo, (255, 180, 50), (35, 130, 12, 18))
+        pygame.draw.rect(toodloo, (255, 180, 50), (63, 130, 12, 18))
+        pygame.draw.rect(toodloo, (255, 220, 100), (35, 133, 12, 4))
+        pygame.draw.rect(toodloo, (255, 220, 100), (63, 133, 12, 4))
+        # Orange feet
+        pygame.draw.ellipse(toodloo, (255, 180, 50), (27, 142, 28, 10))
+        pygame.draw.ellipse(toodloo, (255, 180, 50), (55, 142, 28, 10))
+        self.twirlywoo_sprites.append(toodloo)
+
+        # Chick - Orange body with yellow belly, BLUE crest and feet
+        chick = pygame.Surface((110, 155), pygame.SRCALPHA)
+        # BIG round body
+        pygame.draw.ellipse(chick, (255, 180, 80), (5, 45, 100, 100))  # Orange body
+        pygame.draw.ellipse(chick, (255, 240, 130), (18, 57, 74, 75))  # Yellow belly
+        # Round head (bigger to match proportions)
+        pygame.draw.circle(chick, (255, 180, 80), (55, 34), 24)
+        # BLUE arrow crest (3 prongs)
+        pygame.draw.polygon(chick, (80, 170, 220), [(55, 0), (49, 14), (61, 14)])
+        pygame.draw.polygon(chick, (80, 170, 220), [(43, 4), (40, 14), (50, 14)])
+        pygame.draw.polygon(chick, (80, 170, 220), [(67, 4), (60, 14), (70, 14)])
+        # Simple eyes
+        pygame.draw.circle(chick, (255, 255, 255), (45, 32), 8)
+        pygame.draw.circle(chick, (255, 255, 255), (65, 32), 8)
+        pygame.draw.circle(chick, (0, 0, 0), (46, 33), 4)
+        pygame.draw.circle(chick, (0, 0, 0), (64, 33), 4)
+        # Cute smile
+        pygame.draw.arc(chick, (200, 130, 50), (45, 42, 20, 12), 3.4, 6.0, 2)
+        # Arms/flippers
+        pygame.draw.ellipse(chick, (255, 180, 80), (0, 55, 18, 50))
+        pygame.draw.ellipse(chick, (255, 180, 80), (92, 55, 18, 50))
+        # BLUE striped legs
+        pygame.draw.rect(chick, (80, 170, 220), (35, 130, 12, 18))
+        pygame.draw.rect(chick, (80, 170, 220), (63, 130, 12, 18))
+        pygame.draw.rect(chick, (150, 210, 240), (35, 133, 12, 4))
+        pygame.draw.rect(chick, (150, 210, 240), (63, 133, 12, 4))
+        # Blue feet
+        pygame.draw.ellipse(chick, (80, 170, 220), (27, 142, 28, 10))
+        pygame.draw.ellipse(chick, (80, 170, 220), (55, 142, 28, 10))
+        self.twirlywoo_sprites.append(chick)
+
+        # Chickedy - Orange body with yellow belly, RED/PINK crest and feet
+        chickedy = pygame.Surface((110, 155), pygame.SRCALPHA)
+        # BIG round body
+        pygame.draw.ellipse(chickedy, (255, 180, 80), (5, 45, 100, 100))  # Orange body
+        pygame.draw.ellipse(chickedy, (255, 240, 130), (18, 57, 74, 75))  # Yellow belly
+        # Round head (bigger to match proportions)
+        pygame.draw.circle(chickedy, (255, 180, 80), (55, 34), 24)
+        # RED arrow crest (3 prongs)
+        pygame.draw.polygon(chickedy, (220, 60, 80), [(55, 0), (49, 14), (61, 14)])
+        pygame.draw.polygon(chickedy, (220, 60, 80), [(43, 4), (40, 14), (50, 14)])
+        pygame.draw.polygon(chickedy, (220, 60, 80), [(67, 4), (60, 14), (70, 14)])
+        # Simple eyes
+        pygame.draw.circle(chickedy, (255, 255, 255), (45, 32), 8)
+        pygame.draw.circle(chickedy, (255, 255, 255), (65, 32), 8)
+        pygame.draw.circle(chickedy, (0, 0, 0), (46, 33), 4)
+        pygame.draw.circle(chickedy, (0, 0, 0), (64, 33), 4)
+        # Cute smile
+        pygame.draw.arc(chickedy, (200, 130, 50), (45, 42, 20, 12), 3.4, 6.0, 2)
+        # Arms/flippers
+        pygame.draw.ellipse(chickedy, (255, 180, 80), (0, 55, 18, 50))
+        pygame.draw.ellipse(chickedy, (255, 180, 80), (92, 55, 18, 50))
+        # PINK/RED striped legs
+        pygame.draw.rect(chickedy, (220, 100, 130), (35, 130, 12, 18))
+        pygame.draw.rect(chickedy, (220, 100, 130), (63, 130, 12, 18))
+        pygame.draw.rect(chickedy, (255, 150, 170), (35, 133, 12, 4))
+        pygame.draw.rect(chickedy, (255, 150, 170), (63, 133, 12, 4))
+        # Pink/red feet
+        pygame.draw.ellipse(chickedy, (220, 100, 130), (27, 142, 28, 10))
+        pygame.draw.ellipse(chickedy, (220, 100, 130), (55, 142, 28, 10))
+        self.twirlywoo_sprites.append(chickedy)
 
         # Use first one as default sprite
         self.sprites['twirlywoos_elf'] = self.twirlywoo_sprites[0]
 
-        # Peekaboo (white fluffy creature that hides) - 140x180
+        # Peekaboo - Owl-like with spiky coral/red head, orange body, yellow belly - 140x180
         peekaboo = pygame.Surface((140, 180), pygame.SRCALPHA)
-        # Fluffy white body (overlapping circles for fluffy effect)
-        for _ in range(20):
-            cx = 70 + random.randint(-30, 30)
-            cy = 100 + random.randint(-25, 25)
-            size = random.randint(20, 35)
-            pygame.draw.circle(peekaboo, (250, 250, 255), (cx, cy), size)
-        # Main body shape
-        pygame.draw.ellipse(peekaboo, (255, 255, 255), (20, 50, 100, 120))
-        # Fluffy texture
-        for _ in range(15):
-            cx = 70 + random.randint(-35, 35)
-            cy = 100 + random.randint(-40, 40)
-            pygame.draw.circle(peekaboo, (245, 248, 255), (cx, cy), random.randint(8, 15))
-        # Face area
-        pygame.draw.ellipse(peekaboo, (255, 230, 220), (45, 45, 50, 50))
-        # Eyes (big and cute, peeking)
-        pygame.draw.circle(peekaboo, (0, 0, 0), (55, 65), 10)
-        pygame.draw.circle(peekaboo, (0, 0, 0), (85, 65), 10)
-        pygame.draw.circle(peekaboo, (255, 255, 255), (58, 62), 4)
-        pygame.draw.circle(peekaboo, (255, 255, 255), (88, 62), 4)
-        # Rosy cheeks
-        pygame.draw.circle(peekaboo, (255, 180, 180), (48, 78), 8)
-        pygame.draw.circle(peekaboo, (255, 180, 180), (92, 78), 8)
-        # Little smile
-        pygame.draw.arc(peekaboo, (200, 100, 100), (58, 75, 24, 15), 3.4, 6.0, 2)
+        # Round body - coral/pink sides with orange/yellow center
+        pygame.draw.ellipse(peekaboo, (230, 130, 130), (25, 65, 90, 95))  # Coral outer body
+        pygame.draw.ellipse(peekaboo, (255, 180, 100), (40, 78, 60, 68))  # Orange middle
+        pygame.draw.ellipse(peekaboo, (255, 220, 130), (50, 88, 40, 48))  # Yellow belly center
+        # Bumpy texture on body
+        for i in range(8):
+            bx = 50 + (i % 4) * 12
+            by = 95 + (i // 4) * 15
+            pygame.draw.circle(peekaboo, (255, 200, 120), (bx, by), 5)
+        # Spiky coral/red head (star shape) - BIGGER
+        head_cx, head_cy = 70, 42
+        spike_color = (220, 90, 100)
+        # Draw spikes radiating out (bigger radius)
+        for angle in range(0, 360, 40):
+            rad = math.radians(angle)
+            outer_x = head_cx + math.cos(rad) * 42
+            outer_y = head_cy + math.sin(rad) * 42
+            inner_rad = math.radians(angle + 20)
+            inner_x = head_cx + math.cos(inner_rad) * 22
+            inner_y = head_cy + math.sin(inner_rad) * 22
+            pygame.draw.polygon(peekaboo, spike_color, [
+                (head_cx, head_cy),
+                (int(outer_x), int(outer_y)),
+                (int(inner_x), int(inner_y))
+            ])
+        # Center of head (bigger)
+        pygame.draw.circle(peekaboo, spike_color, (head_cx, head_cy), 26)
+        # Big googly eyes (bigger and adjusted position)
+        pygame.draw.circle(peekaboo, (255, 255, 255), (55, 40), 16)  # Left eye white
+        pygame.draw.circle(peekaboo, (255, 255, 255), (85, 40), 16)  # Right eye white
+        pygame.draw.circle(peekaboo, (0, 0, 50), (56, 42), 9)  # Left pupil
+        pygame.draw.circle(peekaboo, (0, 0, 50), (84, 42), 9)  # Right pupil
+        pygame.draw.circle(peekaboo, (255, 255, 255), (58, 39), 4)  # Left highlight
+        pygame.draw.circle(peekaboo, (255, 255, 255), (86, 39), 4)  # Right highlight
+        # Red/coral feet at bottom
+        pygame.draw.ellipse(peekaboo, (220, 90, 100), (35, 150, 30, 20))
+        pygame.draw.ellipse(peekaboo, (220, 90, 100), (75, 150, 30, 20))
+        # Toe lines
+        pygame.draw.line(peekaboo, (180, 60, 70), (42, 155), (42, 168), 2)
+        pygame.draw.line(peekaboo, (180, 60, 70), (50, 155), (50, 168), 2)
+        pygame.draw.line(peekaboo, (180, 60, 70), (82, 155), (82, 168), 2)
+        pygame.draw.line(peekaboo, (180, 60, 70), (90, 155), (90, 168), 2)
         self.sprites['twirlywoos_santa'] = peekaboo
 
-        # Very Important Lady (stern looking lady in dark clothes) - 120x160
-        vil = pygame.Surface((120, 160), pygame.SRCALPHA)
-        # Dark dress/coat
-        pygame.draw.polygon(vil, (40, 30, 60), [(60, 55), (20, 160), (100, 160)])
-        pygame.draw.ellipse(vil, (50, 40, 70), (30, 50, 60, 50))
-        # Head
-        pygame.draw.circle(vil, (255, 218, 185), (60, 40), 30)
-        # Hair (dark, neat bun)
-        pygame.draw.ellipse(vil, (40, 30, 30), (35, 8, 50, 35))
-        pygame.draw.circle(vil, (40, 30, 30), (60, 15), 18)
-        # Stern eyebrows
-        pygame.draw.line(vil, (30, 20, 20), (42, 32), (55, 36), 4)
-        pygame.draw.line(vil, (30, 20, 20), (78, 32), (65, 36), 4)
-        # Disapproving eyes
-        pygame.draw.ellipse(vil, (255, 255, 255), (45, 35, 14, 12))
-        pygame.draw.ellipse(vil, (255, 255, 255), (65, 35, 14, 12))
-        pygame.draw.circle(vil, (80, 60, 40), (52, 42), 5)
-        pygame.draw.circle(vil, (80, 60, 40), (72, 42), 5)
-        # Pursed lips
-        pygame.draw.line(vil, (180, 100, 100), (52, 55), (68, 55), 3)
-        # Pearl necklace
-        for i in range(5):
-            px = 42 + i * 9
-            pygame.draw.circle(vil, (255, 255, 240), (px, 65), 4)
-        # Glasses (optional stern look)
-        pygame.draw.circle(vil, (100, 100, 100), (52, 40), 12, 2)
-        pygame.draw.circle(vil, (100, 100, 100), (72, 40), 12, 2)
-        pygame.draw.line(vil, (100, 100, 100), (64, 40), (60, 40), 2)
+        # Very Important Lady - Tall cone body with striped sections, blue head, red spiral - 120x180
+        vil = pygame.Surface((120, 180), pygame.SRCALPHA)
+        # Cone-shaped body with horizontal stripes (bottom to top: red, orange, purple)
+        # Red bottom section
+        pygame.draw.polygon(vil, (200, 50, 70), [(60, 180), (15, 180), (30, 140), (90, 140)])
+        # Orange middle section
+        pygame.draw.polygon(vil, (255, 160, 50), [(30, 140), (90, 140), (75, 100), (45, 100)])
+        # Purple upper section (two tones)
+        pygame.draw.polygon(vil, (130, 90, 170), [(45, 100), (75, 100), (68, 70), (52, 70)])
+        pygame.draw.polygon(vil, (100, 70, 140), [(52, 70), (68, 70), (65, 55), (55, 55)])
+        # Yellow neck
+        pygame.draw.rect(vil, (255, 230, 100), (52, 45, 16, 15))
+        # Light blue head
+        pygame.draw.ellipse(vil, (150, 210, 230), (40, 20, 40, 35))
+        # Simple face - small eyes with surprised look
+        pygame.draw.circle(vil, (255, 255, 255), (52, 32), 6)
+        pygame.draw.circle(vil, (255, 255, 255), (68, 32), 6)
+        pygame.draw.circle(vil, (0, 0, 0), (52, 33), 3)
+        pygame.draw.circle(vil, (0, 0, 0), (68, 33), 3)
+        # Small oval mouth (surprised)
+        pygame.draw.ellipse(vil, (50, 50, 80), (56, 42, 8, 6))
+        # Red curly spiral antenna on top
+        spiral_x, spiral_y = 60, 5
+        # Draw spiral as curved line going up
+        points = []
+        for i in range(25):
+            t = i / 24.0
+            x = spiral_x + math.sin(t * 4) * (8 - t * 6)
+            y = spiral_y + t * 20
+            points.append((int(x), int(y)))
+        if len(points) > 1:
+            pygame.draw.lines(vil, (230, 80, 80), False, points, 5)
+        # Spiral curl at top
+        pygame.draw.circle(vil, (230, 80, 80), (spiral_x, spiral_y), 6)
+        # Small blue hands/arms poking out
+        pygame.draw.ellipse(vil, (150, 210, 230), (30, 75, 18, 12))  # Left hand
+        pygame.draw.ellipse(vil, (150, 210, 230), (72, 75, 18, 12))  # Right hand
         self.sprites['twirlywoos_grinch'] = vil
 
-    def _get_sprite(self, target_type: str):
+    def _get_sprite(self, target_type: str, sprite_variant: int = 0):
         """Get the correct sprite for current theme."""
-        # For Twirlywoos theme, randomly select one of the 4 Twirlywoos
+        # For Twirlywoos theme elves, use the specific Twirlywoo variant assigned at spawn
         if self.theme == 'twirlywoos' and target_type == 'elf':
-            return random.choice(self.twirlywoo_sprites)
+            return self.twirlywoo_sprites[sprite_variant]
         return self.sprites.get(f"{self.theme}_{target_type}")
 
     def _init_sounds(self):
@@ -930,12 +1056,18 @@ class DanceModeGame:
         lifetime = self.LIFETIMES[target_type]
         sizes = {'bauble': 100, 'elf': 110, 'santa': 140, 'grinch': 120}
 
+        # For Twirlywoos theme elves, randomly select which Twirlywoo (0-3)
+        sprite_variant = 0
+        if self.theme == 'twirlywoos' and target_type == 'elf':
+            sprite_variant = random.randint(0, 3)
+
         target = Target(
             x=x, y=y,
             target_type=target_type,
             vx=vx, vy=vy,
             lifetime=lifetime,
-            size=sizes[target_type]
+            size=sizes[target_type],
+            sprite_variant=sprite_variant
         )
         self.targets.append(target)
 
@@ -1361,7 +1493,7 @@ class DanceModeGame:
             self.screen.blit(surf, (int(target.x - size), int(target.y - size)))
             return
 
-        sprite = self._get_sprite(target.target_type)
+        sprite = self._get_sprite(target.target_type, target.sprite_variant)
         if sprite:
             pulse = 1.0 + math.sin(pygame.time.get_ticks() / 200) * 0.1
             scaled = pygame.transform.scale(sprite,
